@@ -1,0 +1,3 @@
+# Python packages verified with this Appium-only beta's replay tests
+Appium-Python-Client==6.0.12
+pytest==8.4.2

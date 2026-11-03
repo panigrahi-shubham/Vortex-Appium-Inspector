@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import net from 'node:net';
+import { test } from 'node:test';
+import { chromium } from 'playwright';
+
+test('browser UI records, previews, saves and replays through the Appium-only server', {timeout:120_000}, async t=>{
+  const probe=net.createServer();await new Promise<void>(r=>probe.listen(0,'127.0.0.1',r));
+  const port=(probe.address() as net.AddressInfo).port;await new Promise<void>(r=>probe.close(()=>r()));
+  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'vortex-appium-ui-'));
+  const child=spawn(process.execPath,['src/server.ts','--mock','--port',String(port),'--state-dir',path.join(temp,'state'),'--out',path.join(temp,'out')],{cwd:process.cwd(),windowsHide:true,stdio:['ignore','pipe','pipe']});
+  let log='';child.stdout.on('data',b=>log+=String(b));child.stderr.on('data',b=>log+=String(b));
+  t.after(async()=>{child.kill();await new Promise(r=>{child.once('exit',r);setTimeout(r,3000);});if(path.resolve(temp).startsWith(path.resolve(os.tmpdir())+path.sep))fs.rmSync(temp,{recursive:true,force:true});});
+  const base=`http://127.0.0.1:${port}`;
+  let ready=false;for(let i=0;i<100;i++){try{ready=(await fetch(base+'/api/health')).ok;}catch{}if(ready)break;await new Promise(r=>setTimeout(r,100));}
+  assert.ok(ready,log);
+  assert.equal((await fetch(base+'/api/save',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://external.example'},body:'{}'})).status,403);
+  const duplicate=spawn(process.execPath,['src/server.ts','--port',String(port)],{stdio:['ignore','pipe','pipe'],windowsHide:true});let duplicateLog='';duplicate.stderr.on('data',b=>duplicateLog+=String(b));
+  const exit=await new Promise<number|null>(r=>duplicate.once('exit',r));assert.equal(exit,1);assert.match(duplicateLog,/occupied/);assert.doesNotMatch(duplicateLog,/Unhandled/);
+  const browser=await chromium.launch();t.after(()=>browser.close());
+  const page=await browser.newPage({viewport:{width:1600,height:1000}});
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(base);await page.waitForFunction(()=>document.querySelector('#device option')?.textContent?.includes('mock-device'));
+  await page.locator('#pkg').fill('com.yourname.tradehub');await page.locator('#attach').click();
+  await page.waitForFunction(()=>document.querySelector('#notice')?.textContent?.includes('Session attached'));
+  await page.locator('[data-global="launch_app"]').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='1');
+  await page.locator('#tree button').filter({hasText:'home_search_input'}).click();
+  await page.locator('#text').fill('UI test');await page.locator('#fill').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='2');
+  await page.locator('#tree button').filter({hasText:'home_search_input'}).click();await page.locator('#assertion').selectOption('text');await page.locator('#expected').fill('UI test');await page.locator('#assert').click();
+  await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='3');
+  await page.locator('[data-global="close_app"]').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='4');
+  await page.locator('#name').fill('browser smoke');await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice')?.textContent?.includes('Ready to replay'));
+  assert.match(await page.locator('#code').innerText(),/from appium import webdriver/);
+  page.on('dialog',d=>d.accept());await page.locator('#run').click();
+  await page.waitForFunction(()=>document.querySelector('#output')?.textContent?.startsWith('PASSED'),{},{timeout:40_000});
+  assert.deepEqual(errors,[]);
+  await page.screenshot({path:path.join(os.tmpdir(),'vortex-appium-inspector-ui.png'),fullPage:true});
+});

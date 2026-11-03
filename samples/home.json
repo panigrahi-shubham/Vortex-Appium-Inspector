@@ -1,0 +1,1111 @@
+{
+  "status": "ok",
+  "data": {
+    "elements": [
+      {
+        "ref": "@e75",
+        "type": "android.widget.FrameLayout",
+        "text": "",
+        "identifier": "com.android.systemui:id/navigation_bar_frame",
+        "rect": {
+          "x": 0,
+          "y": 2280,
+          "width": 1080,
+          "height": 120
+        },
+        "children": [
+          {
+            "ref": "@e72",
+            "type": "android.widget.ImageView",
+            "label": "Back",
+            "text": "",
+            "identifier": "com.android.systemui:id/back",
+            "rect": {
+              "x": 130,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          },
+          {
+            "ref": "@e73",
+            "type": "android.widget.ImageView",
+            "label": "Home",
+            "text": "",
+            "identifier": "com.android.systemui:id/home",
+            "rect": {
+              "x": 440,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          },
+          {
+            "ref": "@e74",
+            "type": "android.widget.ImageView",
+            "label": "Overview",
+            "text": "",
+            "identifier": "com.android.systemui:id/recent_apps",
+            "rect": {
+              "x": 748,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          }
+        ]
+      },
+      {
+        "ref": "@e78",
+        "type": "android.widget.FrameLayout",
+        "text": "",
+        "identifier": "com.android.systemui:id/status_bar_container",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 105
+        },
+        "children": [
+          {
+            "ref": "@e76",
+            "type": "android.widget.TextView",
+            "label": "1:53 pm",
+            "text": "1:53",
+            "identifier": "com.android.systemui:id/clock",
+            "rect": {
+              "x": 26,
+              "y": 16,
+              "width": 82,
+              "height": 89
+            }
+          },
+          {
+            "ref": "@e77",
+            "type": "android.widget.LinearLayout",
+            "label": "Battery charging, 70 percent.",
+            "text": "",
+            "identifier": "com.android.systemui:id/battery",
+            "rect": {
+              "x": 1035,
+              "y": 16,
+              "width": 19,
+              "height": 89
+            }
+          }
+        ]
+      },
+      {
+        "ref": "@e79",
+        "type": "android.widget.ImageView",
+        "text": "",
+        "identifier": "videoeditor.videorecorder.screenrecorder:id/logo",
+        "rect": {
+          "x": 1012,
+          "y": 485,
+          "width": 96,
+          "height": 96
+        }
+      },
+      {
+        "ref": "@e81",
+        "type": "androidx.compose.ui.platform.ComposeView",
+        "text": "",
+        "rect": {
+          "x": 757,
+          "y": 1034,
+          "width": 190,
+          "height": 81
+        },
+        "children": [
+          {
+            "ref": "@e80",
+            "type": "android.widget.TextView",
+            "text": "00:11:43",
+            "rect": {
+              "x": 772,
+              "y": 1039,
+              "width": 160,
+              "height": 71
+            }
+          }
+        ]
+      },
+      {
+        "ref": "@e71",
+        "type": "android.widget.LinearLayout",
+        "text": "",
+        "identifier": "com.yourname.tradehub:id/action_bar_root",
+        "rect": {
+          "x": 0,
+          "y": 105,
+          "width": 1080,
+          "height": 2175
+        },
+        "children": [
+          {
+            "ref": "@e70",
+            "type": "android.widget.FrameLayout",
+            "text": "",
+            "identifier": "android:id/content",
+            "rect": {
+              "x": 0,
+              "y": 105,
+              "width": 1080,
+              "height": 2175
+            },
+            "children": [
+              {
+                "ref": "@e69",
+                "type": "android.view.ViewGroup",
+                "label": "TradeHub Main Screen Container",
+                "text": "",
+                "identifier": "com.yourname.tradehub:id/main_root_layout",
+                "rect": {
+                  "x": 0,
+                  "y": 105,
+                  "width": 1080,
+                  "height": 2175
+                },
+                "children": [
+                  {
+                    "ref": "@e37",
+                    "type": "android.widget.FrameLayout",
+                    "label": "Primary Fragment Host Container",
+                    "text": "",
+                    "identifier": "com.yourname.tradehub:id/main_fragment_container",
+                    "rect": {
+                      "x": 0,
+                      "y": 105,
+                      "width": 1080,
+                      "height": 1975
+                    },
+                    "children": [
+                      {
+                        "ref": "@e36",
+                        "type": "android.view.ViewGroup",
+                        "label": "Home Pull to Refresh Container",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/home_swipe_refresh",
+                        "rect": {
+                          "x": 0,
+                          "y": 105,
+                          "width": 1080,
+                          "height": 1975
+                        },
+                        "children": [
+                          {
+                            "ref": "@e35",
+                            "type": "android.widget.ScrollView",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/home_nested_scroll",
+                            "rect": {
+                              "x": 0,
+                              "y": 105,
+                              "width": 1080,
+                              "height": 1975
+                            },
+                            "children": [
+                              {
+                                "ref": "@e34",
+                                "type": "android.widget.LinearLayout",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/home_content_layout",
+                                "rect": {
+                                  "x": 0,
+                                  "y": 105,
+                                  "width": 1080,
+                                  "height": 1975
+                                },
+                                "children": [
+                                  {
+                                    "ref": "@e19",
+                                    "type": "android.widget.TextView",
+                                    "label": "Home Welcome Greeting",
+                                    "text": "Welcome, Rajesh Sharma",
+                                    "identifier": "com.yourname.tradehub:id/home_welcome_text",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 145,
+                                      "width": 648,
+                                      "height": 150
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e20",
+                                    "type": "android.widget.TextView",
+                                    "label": "Current Active Role Badge",
+                                    "text": "Role: SELLER",
+                                    "identifier": "com.yourname.tradehub:id/home_role_badge_text",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 300,
+                                      "width": 218,
+                                      "height": 48
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e21",
+                                    "type": "android.widget.Button",
+                                    "label": "Seller My Products Shortcut Button",
+                                    "text": "My Products",
+                                    "identifier": "com.yourname.tradehub:id/home_my_products_button",
+                                    "rect": {
+                                      "x": 688,
+                                      "y": 186,
+                                      "width": 352,
+                                      "height": 120
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e24",
+                                    "type": "android.widget.LinearLayout",
+                                    "text": "",
+                                    "identifier": "com.yourname.tradehub:id/home_search_bar_container",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 383,
+                                      "width": 1000,
+                                      "height": 120
+                                    },
+                                    "children": [
+                                      {
+                                        "ref": "@e22",
+                                        "type": "android.widget.EditText",
+                                        "label": "Home Search Query Input",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/home_search_input",
+                                        "rect": {
+                                          "x": 40,
+                                          "y": 383,
+                                          "width": 734,
+                                          "height": 120
+                                        },
+                                        "placeholder": "Search machinery, steel, textiles..."
+                                      },
+                                      {
+                                        "ref": "@e23",
+                                        "type": "android.widget.Button",
+                                        "label": "Submit Home Search Button",
+                                        "text": "Search",
+                                        "identifier": "com.yourname.tradehub:id/home_search_button",
+                                        "rect": {
+                                          "x": 794,
+                                          "y": 383,
+                                          "width": 246,
+                                          "height": 120
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "ref": "@e28",
+                                    "type": "androidx.cardview.widget.CardView",
+                                    "label": "Live Market Insights Banner",
+                                    "text": "",
+                                    "identifier": "com.yourname.tradehub:id/home_market_card",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 533,
+                                      "width": 1000,
+                                      "height": 163
+                                    },
+                                    "children": [
+                                      {
+                                        "ref": "@e25",
+                                        "type": "android.widget.TextView",
+                                        "text": "Live Market Insights & Metal Rates",
+                                        "rect": {
+                                          "x": 70,
+                                          "y": 563,
+                                          "width": 671,
+                                          "height": 55
+                                        }
+                                      },
+                                      {
+                                        "ref": "@e26",
+                                        "type": "android.widget.TextView",
+                                        "text": "Requires Online Mode • Real-time TMT Steel & Copper",
+                                        "rect": {
+                                          "x": 70,
+                                          "y": 623,
+                                          "width": 786,
+                                          "height": 43
+                                        }
+                                      },
+                                      {
+                                        "ref": "@e27",
+                                        "type": "android.widget.TextView",
+                                        "text": "OPEN →",
+                                        "rect": {
+                                          "x": 875,
+                                          "y": 589,
+                                          "width": 135,
+                                          "height": 50
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "ref": "@e29",
+                                    "type": "android.widget.Button",
+                                    "text": "⚖ Compare Products",
+                                    "identifier": "com.yourname.tradehub:id/home_compare_button",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 721,
+                                      "width": 485,
+                                      "height": 110
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e30",
+                                    "type": "android.widget.Button",
+                                    "text": "🚚 Track Dispatch",
+                                    "identifier": "com.yourname.tradehub:id/home_track_button",
+                                    "rect": {
+                                      "x": 555,
+                                      "y": 721,
+                                      "width": 485,
+                                      "height": 110
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e31",
+                                    "type": "android.widget.TextView",
+                                    "label": "Explore Categories Section Heading",
+                                    "text": "Explore Categories (6)",
+                                    "identifier": "com.yourname.tradehub:id/home_categories_header_text",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 881,
+                                      "width": 1000,
+                                      "height": 67
+                                    }
+                                  },
+                                  {
+                                    "ref": "@e32",
+                                    "type": "android.widget.GridView",
+                                    "label": "Home Categories Grid List",
+                                    "text": "",
+                                    "identifier": "com.yourname.tradehub:id/home_categories_recycler",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 968,
+                                      "width": 1000,
+                                      "height": 734
+                                    },
+                                    "children": [
+                                      {
+                                        "ref": "@e3",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 55,
+                                          "y": 983,
+                                          "width": 470,
+                                          "height": 231
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e1",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Industrial Machinery",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1018,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e2",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "10 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1114,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "ref": "@e6",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 555,
+                                          "y": 983,
+                                          "width": 470,
+                                          "height": 231
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e4",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Electronics and Electrical",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1018,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e5",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "9 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1114,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "ref": "@e9",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 55,
+                                          "y": 1244,
+                                          "width": 470,
+                                          "height": 182
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e7",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Textiles and Apparel",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1279,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e8",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "8 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1326,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "ref": "@e12",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 555,
+                                          "y": 1244,
+                                          "width": 470,
+                                          "height": 182
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e10",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Food and Agro",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1279,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e11",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "8 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1326,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "ref": "@e15",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 55,
+                                          "y": 1456,
+                                          "width": 470,
+                                          "height": 231
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e13",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Building Materials",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1491,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e14",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "8 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 90,
+                                              "y": 1587,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "ref": "@e18",
+                                        "type": "androidx.cardview.widget.CardView",
+                                        "label": "Category Card Item",
+                                        "text": "",
+                                        "identifier": "com.yourname.tradehub:id/category_card_root",
+                                        "rect": {
+                                          "x": 555,
+                                          "y": 1456,
+                                          "width": 470,
+                                          "height": 231
+                                        },
+                                        "children": [
+                                          {
+                                            "ref": "@e16",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Title Text",
+                                            "text": "Packaging and Printing",
+                                            "identifier": "com.yourname.tradehub:id/category_name_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1491,
+                                              "width": 400,
+                                              "height": 55
+                                            }
+                                          },
+                                          {
+                                            "ref": "@e17",
+                                            "type": "android.widget.TextView",
+                                            "label": "Category Product Count Text",
+                                            "text": "8 Products",
+                                            "identifier": "com.yourname.tradehub:id/category_count_text",
+                                            "rect": {
+                                              "x": 590,
+                                              "y": 1587,
+                                              "width": 400,
+                                              "height": 47
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "ref": "@e33",
+                                    "type": "android.widget.TextView",
+                                    "label": "Featured Products Section Heading",
+                                    "text": "Featured Products",
+                                    "identifier": "com.yourname.tradehub:id/home_featured_header_text",
+                                    "rect": {
+                                      "x": 40,
+                                      "y": 1752,
+                                      "width": 1000,
+                                      "height": 67
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "ref": "@e68",
+                    "type": "android.widget.FrameLayout",
+                    "label": "Bottom Navigation Bar",
+                    "text": "",
+                    "identifier": "com.yourname.tradehub:id/home_bottom_nav",
+                    "rect": {
+                      "x": 0,
+                      "y": 2080,
+                      "width": 1080,
+                      "height": 200
+                    },
+                    "children": [
+                      {
+                        "ref": "@e43",
+                        "type": "android.widget.FrameLayout",
+                        "label": "Home",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/nav_home",
+                        "rect": {
+                          "x": 0,
+                          "y": 2080,
+                          "width": 216,
+                          "height": 200
+                        },
+                        "selected": true,
+                        "children": [
+                          {
+                            "ref": "@e40",
+                            "type": "android.widget.FrameLayout",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_container",
+                            "rect": {
+                              "x": 28,
+                              "y": 2110,
+                              "width": 160,
+                              "height": 80
+                            },
+                            "children": [
+                              {
+                                "ref": "@e38",
+                                "type": "android.view.View",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_active_indicator_view",
+                                "rect": {
+                                  "x": 76,
+                                  "y": 2110,
+                                  "width": 64,
+                                  "height": 80
+                                }
+                              },
+                              {
+                                "ref": "@e39",
+                                "type": "android.widget.ImageView",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_view",
+                                "rect": {
+                                  "x": 78,
+                                  "y": 2120,
+                                  "width": 60,
+                                  "height": 60
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "ref": "@e42",
+                            "type": "android.view.ViewGroup",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_labels_group",
+                            "rect": {
+                              "x": 21,
+                              "y": 2207,
+                              "width": 173,
+                              "height": 73
+                            },
+                            "children": [
+                              {
+                                "ref": "@e41",
+                                "type": "android.widget.TextView",
+                                "text": "Home",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_small_label_view",
+                                "rect": {
+                                  "x": 28,
+                                  "y": 2208,
+                                  "width": 159,
+                                  "height": 40
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "ref": "@e49",
+                        "type": "android.widget.FrameLayout",
+                        "label": "Categories",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/nav_categories",
+                        "rect": {
+                          "x": 216,
+                          "y": 2080,
+                          "width": 216,
+                          "height": 200
+                        },
+                        "children": [
+                          {
+                            "ref": "@e46",
+                            "type": "android.widget.FrameLayout",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_container",
+                            "rect": {
+                              "x": 244,
+                              "y": 2110,
+                              "width": 160,
+                              "height": 80
+                            },
+                            "children": [
+                              {
+                                "ref": "@e44",
+                                "type": "android.view.View",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_active_indicator_view",
+                                "rect": {
+                                  "x": 292,
+                                  "y": 2110,
+                                  "width": 64,
+                                  "height": 80
+                                }
+                              },
+                              {
+                                "ref": "@e45",
+                                "type": "android.widget.ImageView",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_view",
+                                "rect": {
+                                  "x": 294,
+                                  "y": 2120,
+                                  "width": 60,
+                                  "height": 60
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "ref": "@e48",
+                            "type": "android.view.ViewGroup",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_labels_group",
+                            "rect": {
+                              "x": 237,
+                              "y": 2207,
+                              "width": 173,
+                              "height": 73
+                            },
+                            "children": [
+                              {
+                                "ref": "@e47",
+                                "type": "android.widget.TextView",
+                                "text": "Categories",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_small_label_view",
+                                "rect": {
+                                  "x": 244,
+                                  "y": 2208,
+                                  "width": 159,
+                                  "height": 40
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "ref": "@e55",
+                        "type": "android.widget.FrameLayout",
+                        "label": "Messages, 6 new notifications",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/nav_messages",
+                        "rect": {
+                          "x": 432,
+                          "y": 2080,
+                          "width": 216,
+                          "height": 200
+                        },
+                        "children": [
+                          {
+                            "ref": "@e52",
+                            "type": "android.widget.FrameLayout",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_container",
+                            "rect": {
+                              "x": 460,
+                              "y": 2110,
+                              "width": 160,
+                              "height": 80
+                            },
+                            "children": [
+                              {
+                                "ref": "@e50",
+                                "type": "android.view.View",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_active_indicator_view",
+                                "rect": {
+                                  "x": 508,
+                                  "y": 2110,
+                                  "width": 64,
+                                  "height": 80
+                                }
+                              },
+                              {
+                                "ref": "@e51",
+                                "type": "android.widget.ImageView",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_view",
+                                "rect": {
+                                  "x": 510,
+                                  "y": 2120,
+                                  "width": 60,
+                                  "height": 60
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "ref": "@e54",
+                            "type": "android.view.ViewGroup",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_labels_group",
+                            "rect": {
+                              "x": 453,
+                              "y": 2207,
+                              "width": 173,
+                              "height": 73
+                            },
+                            "children": [
+                              {
+                                "ref": "@e53",
+                                "type": "android.widget.TextView",
+                                "text": "Messages",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_small_label_view",
+                                "rect": {
+                                  "x": 460,
+                                  "y": 2208,
+                                  "width": 159,
+                                  "height": 40
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "ref": "@e61",
+                        "type": "android.widget.FrameLayout",
+                        "label": "Leads",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/nav_leads",
+                        "rect": {
+                          "x": 648,
+                          "y": 2080,
+                          "width": 216,
+                          "height": 200
+                        },
+                        "children": [
+                          {
+                            "ref": "@e58",
+                            "type": "android.widget.FrameLayout",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_container",
+                            "rect": {
+                              "x": 676,
+                              "y": 2110,
+                              "width": 160,
+                              "height": 80
+                            },
+                            "children": [
+                              {
+                                "ref": "@e56",
+                                "type": "android.view.View",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_active_indicator_view",
+                                "rect": {
+                                  "x": 724,
+                                  "y": 2110,
+                                  "width": 64,
+                                  "height": 80
+                                }
+                              },
+                              {
+                                "ref": "@e57",
+                                "type": "android.widget.ImageView",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_view",
+                                "rect": {
+                                  "x": 726,
+                                  "y": 2120,
+                                  "width": 60,
+                                  "height": 60
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "ref": "@e60",
+                            "type": "android.view.ViewGroup",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_labels_group",
+                            "rect": {
+                              "x": 669,
+                              "y": 2207,
+                              "width": 173,
+                              "height": 73
+                            },
+                            "children": [
+                              {
+                                "ref": "@e59",
+                                "type": "android.widget.TextView",
+                                "text": "Leads",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_small_label_view",
+                                "rect": {
+                                  "x": 676,
+                                  "y": 2208,
+                                  "width": 159,
+                                  "height": 40
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "ref": "@e67",
+                        "type": "android.widget.FrameLayout",
+                        "label": "Profile",
+                        "text": "",
+                        "identifier": "com.yourname.tradehub:id/nav_profile",
+                        "rect": {
+                          "x": 864,
+                          "y": 2080,
+                          "width": 216,
+                          "height": 200
+                        },
+                        "children": [
+                          {
+                            "ref": "@e64",
+                            "type": "android.widget.FrameLayout",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_container",
+                            "rect": {
+                              "x": 892,
+                              "y": 2110,
+                              "width": 160,
+                              "height": 80
+                            },
+                            "children": [
+                              {
+                                "ref": "@e62",
+                                "type": "android.view.View",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_active_indicator_view",
+                                "rect": {
+                                  "x": 940,
+                                  "y": 2110,
+                                  "width": 64,
+                                  "height": 80
+                                }
+                              },
+                              {
+                                "ref": "@e63",
+                                "type": "android.widget.ImageView",
+                                "text": "",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_icon_view",
+                                "rect": {
+                                  "x": 942,
+                                  "y": 2120,
+                                  "width": 60,
+                                  "height": 60
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "ref": "@e66",
+                            "type": "android.view.ViewGroup",
+                            "text": "",
+                            "identifier": "com.yourname.tradehub:id/navigation_bar_item_labels_group",
+                            "rect": {
+                              "x": 885,
+                              "y": 2207,
+                              "width": 173,
+                              "height": 73
+                            },
+                            "children": [
+                              {
+                                "ref": "@e65",
+                                "type": "android.widget.TextView",
+                                "text": "Profile",
+                                "identifier": "com.yourname.tradehub:id/navigation_bar_item_small_label_view",
+                                "rect": {
+                                  "x": 892,
+                                  "y": 2208,
+                                  "width": 159,
+                                  "height": 40
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ref": "@e82",
+        "type": "android.view.View",
+        "text": "",
+        "identifier": "android:id/statusBarBackground",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 105
+        }
+      },
+      {
+        "ref": "@e83",
+        "type": "android.view.View",
+        "text": "",
+        "identifier": "android:id/navigationBarBackground",
+        "rect": {
+          "x": 0,
+          "y": 2280,
+          "width": 1080,
+          "height": 120
+        }
+      }
+    ]
+  }
+}

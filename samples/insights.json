@@ -1,0 +1,372 @@
+{
+  "status": "ok",
+  "data": {
+    "elements": [
+      {
+        "ref": "@e75",
+        "type": "android.widget.FrameLayout",
+        "text": "",
+        "identifier": "com.android.systemui:id/navigation_bar_frame",
+        "rect": {
+          "x": 0,
+          "y": 2280,
+          "width": 1080,
+          "height": 120
+        },
+        "children": [
+          {
+            "ref": "@e72",
+            "type": "android.widget.ImageView",
+            "label": "Back",
+            "text": "",
+            "identifier": "com.android.systemui:id/back",
+            "rect": {
+              "x": 130,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          },
+          {
+            "ref": "@e73",
+            "type": "android.widget.ImageView",
+            "label": "Home",
+            "text": "",
+            "identifier": "com.android.systemui:id/home",
+            "rect": {
+              "x": 440,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          },
+          {
+            "ref": "@e74",
+            "type": "android.widget.ImageView",
+            "label": "Overview",
+            "text": "",
+            "identifier": "com.android.systemui:id/recent_apps",
+            "rect": {
+              "x": 748,
+              "y": 2280,
+              "width": 200,
+              "height": 120
+            }
+          }
+        ]
+      },
+      {
+        "ref": "@e78",
+        "type": "android.widget.FrameLayout",
+        "text": "",
+        "identifier": "com.android.systemui:id/status_bar_container",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 105
+        },
+        "children": [
+          {
+            "ref": "@e76",
+            "type": "android.widget.TextView",
+            "label": "1:53 pm",
+            "text": "1:53",
+            "identifier": "com.android.systemui:id/clock",
+            "rect": {
+              "x": 26,
+              "y": 16,
+              "width": 82,
+              "height": 89
+            }
+          },
+          {
+            "ref": "@e77",
+            "type": "android.widget.LinearLayout",
+            "label": "Battery charging, 70 percent.",
+            "text": "",
+            "identifier": "com.android.systemui:id/battery",
+            "rect": {
+              "x": 1035,
+              "y": 16,
+              "width": 19,
+              "height": 89
+            }
+          }
+        ]
+      },
+      {
+        "ref": "@e82",
+        "type": "android.view.View",
+        "text": "",
+        "identifier": "android:id/statusBarBackground",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 105
+        }
+      },
+      {
+        "ref": "@e83",
+        "type": "android.view.View",
+        "text": "",
+        "identifier": "android:id/navigationBarBackground",
+        "rect": {
+          "x": 0,
+          "y": 2280,
+          "width": 1080,
+          "height": 120
+        }
+      },
+      {
+        "ref": "@e220",
+        "text": "",
+        "type": "android.widget.LinearLayout",
+        "identifier": "com.yourname.tradehub:id/action_bar_root",
+        "rect": {
+          "x": 0,
+          "y": 105,
+          "width": 1080,
+          "height": 2175
+        },
+        "children": [
+          {
+            "ref": "@e202",
+            "text": "",
+            "type": "android.view.ViewGroup",
+            "identifier": "com.yourname.tradehub:id/insights_toolbar",
+            "rect": {
+              "x": 0,
+              "y": 105,
+              "width": 1080,
+              "height": 150
+            },
+            "children": [
+              {
+                "ref": "@e200",
+                "text": "",
+                "type": "android.widget.ImageButton",
+                "label": "Navigate up",
+                "identifier": "com.yourname.tradehub:id/insights_back_button",
+                "rect": {
+                  "x": 0,
+                  "y": 105,
+                  "width": 150,
+                  "height": 150
+                }
+              },
+              {
+                "ref": "@e201",
+                "text": "Market Insights",
+                "type": "android.widget.TextView",
+                "identifier": "com.yourname.tradehub:id/insights_title_text",
+                "rect": {
+                  "x": 150,
+                  "y": 140,
+                  "width": 420,
+                  "height": 80
+                }
+              }
+            ]
+          },
+          {
+            "ref": "@e219",
+            "text": "",
+            "type": "android.webkit.WebView",
+            "identifier": "com.yourname.tradehub:id/insights_webview",
+            "rect": {
+              "x": 0,
+              "y": 255,
+              "width": 1080,
+              "height": 2025
+            },
+            "children": [
+              {
+                "ref": "@e218",
+                "text": "",
+                "type": "android.view.View",
+                "label": "Market Insights",
+                "rect": {
+                  "x": 0,
+                  "y": 255,
+                  "width": 1080,
+                  "height": 2025
+                },
+                "children": [
+                  {
+                    "ref": "@e203",
+                    "text": "Metal rates today",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 43,
+                      "y": 293,
+                      "width": 994,
+                      "height": 76
+                    }
+                  },
+                  {
+                    "ref": "@e204",
+                    "text": "Synthetic demo data",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 43,
+                      "y": 374,
+                      "width": 994,
+                      "height": 45
+                    }
+                  },
+                  {
+                    "ref": "@e205",
+                    "text": "TMT Steel",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 68,
+                      "y": 526,
+                      "width": 565,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e206",
+                    "text": "52,400 / t",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 654,
+                      "y": 526,
+                      "width": 169,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e207",
+                    "text": "Watch",
+                    "type": "android.widget.Button",
+                    "rect": {
+                      "x": 844,
+                      "y": 516,
+                      "width": 168,
+                      "height": 76
+                    }
+                  },
+                  {
+                    "ref": "@e208",
+                    "text": "Copper",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 68,
+                      "y": 670,
+                      "width": 587,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e209",
+                    "text": "8,910 / t",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 676,
+                      "y": 670,
+                      "width": 146,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e210",
+                    "text": "Watch",
+                    "type": "android.widget.Button",
+                    "rect": {
+                      "x": 844,
+                      "y": 660,
+                      "width": 168,
+                      "height": 76
+                    }
+                  },
+                  {
+                    "ref": "@e211",
+                    "text": "Aluminium",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 68,
+                      "y": 813,
+                      "width": 587,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e212",
+                    "text": "2,340 / t",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 676,
+                      "y": 813,
+                      "width": 146,
+                      "height": 57
+                    }
+                  },
+                  {
+                    "ref": "@e213",
+                    "text": "Watch",
+                    "type": "android.widget.Button",
+                    "rect": {
+                      "x": 844,
+                      "y": 804,
+                      "width": 168,
+                      "height": 76
+                    }
+                  },
+                  {
+                    "ref": "@e214",
+                    "text": "Email for daily rates",
+                    "type": "android.widget.TextView",
+                    "rect": {
+                      "x": 68,
+                      "y": 982,
+                      "width": 945,
+                      "height": 49
+                    }
+                  },
+                  {
+                    "ref": "@e215",
+                    "text": "",
+                    "type": "android.widget.EditText",
+                    "placeholder": "you@example.com",
+                    "rect": {
+                      "x": 68,
+                      "y": 1048,
+                      "width": 945,
+                      "height": 111
+                    }
+                  },
+                  {
+                    "ref": "@e216",
+                    "text": "Subscribe",
+                    "type": "android.widget.Button",
+                    "rect": {
+                      "x": 68,
+                      "y": 1185,
+                      "width": 945,
+                      "height": 111
+                    }
+                  },
+                  {
+                    "ref": "@e217",
+                    "text": "",
+                    "type": "android.view.View",
+                    "label": "Price alerts",
+                    "rect": {
+                      "x": 32,
+                      "y": 1439,
+                      "width": 1021,
+                      "height": 254
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

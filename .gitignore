@@ -1,0 +1,8 @@
+node_modules/
+generated/
+.vortex/
+dist/
+.package-staging-*/
+__pycache__/
+.pytest_cache/
+.env
