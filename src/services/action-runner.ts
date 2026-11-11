@@ -207,7 +207,7 @@ export class ActionRunner {
       }
     }
     const picked = body.locator && typeof body.locator === 'object' ? (body.locator as { strategy?: unknown; value?: unknown }) : null;
-    let target = await this.#d.locators.nativeTarget(Number(body.index), screen, picked ? { strategy: String(picked.strategy), value: String(picked.value) } : null);
+    let target = await this.#d.locators.nativeTarget(Number(body.index), screen, picked ? { strategy: String(picked.strategy), value: String(picked.value) } : null, type === 'assert' && args.assertion === 'count');
     if (['type', 'clear'].includes(type) && target.parts.by === 'text') throw problem('A text locator changes as soon as the field is edited. Choose the ID, label or XPath for typing.');
     // A count check counts every control with the value, not the one row that was selected.
     if (type === 'assert' && args.assertion === 'count' && target.parts.index !== undefined && target.parts.by !== 'xpath' && target.parts.by !== 'css') {

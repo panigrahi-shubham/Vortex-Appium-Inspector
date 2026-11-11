@@ -56,7 +56,7 @@ export class LocatorService {
    * The locator an action on this control uses. With `chosen`, exactly the candidate the tester picked;
    * otherwise ID, then label, then text, then an anchor to a nearby label, and only then the absolute XPath.
    */
-  async nativeTarget(index: number, screen: Snapshot, chosen?: { strategy: string; value: string } | null): Promise<Target> {
+  async nativeTarget(index: number, screen: Snapshot, chosen?: { strategy: string; value: string } | null, collection = false): Promise<Target> {
     const n = screen.nodes.find((x) => x.index === index);
     if (!n) throw problem('Select a control on the current screen.');
     if (chosen) {
@@ -65,7 +65,7 @@ export class LocatorService {
       if (!cand) throw problem('Choose one of the locators listed for this control.');
       const parts = partsForCandidate(cand, node, ps);
       if (!parts) throw problem('That locator cannot be replayed as an element lookup. Use Coordinate tap for a point tap.');
-      if (cand.localMatches !== 1) throw problem('Choose a locator unique on this captured screen.', 'NOT_UNIQUE', 409);
+      if (cand.localMatches !== 1 && !(collection && cand.localMatches !== null && cand.localMatches > 0)) throw problem('Choose a locator unique on this captured screen.', 'NOT_UNIQUE', 409);
       return targetFor(parts, n.text || n.contentDesc || parts.value);
     }
     const fields = [['resourceId', 'id'], ['contentDesc', 'label'], ['text', 'text']] as const;

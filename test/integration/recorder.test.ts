@@ -47,6 +47,7 @@ test('Appium recording: fill, assert, navigate, coordinates, Plain/POM save and 
   await act(app,'assert',{index:byId(app,'myproducts_title_text'),args:{assertion:'visible'}});
   const rowCount=app.snapshot!.nodes.filter(n=>n.resourceId.endsWith('myproduct_row_card')).length;
   await act(app,'assert',{index:byId(app,'myproduct_row_card'),args:{assertion:'count',expected:rowCount}});
+  await act(app,'assert',{index:byId(app,'myproduct_row_card'),locator:{strategy:'id',value:app.snapshot!.nodes.find(n=>n.resourceId.endsWith('myproduct_row_card'))!.resourceId},args:{assertion:'count',expected:rowCount}});
   const button=app.snapshot!.nodes.find(n=>n.resourceId.endsWith('myproduct_edit_button'))!;
   const bounds=button.bounds!;
   await act(app,'tap',{coordinate:true,x:bounds.x+bounds.w/2,y:bounds.y+bounds.h/2});
