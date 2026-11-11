@@ -336,6 +336,12 @@ for (const [behaviour, code] of [
     os.spawnBehaviour = behaviour;
     await rejectsWith(m.start(), code);
     assert.equal(store.current.owned.length, 0);
+      if (behaviour !== 'never-ready') {
+        const status = await m.status();
+        assert.equal(status.server?.state, 'exited', 'failed startup remains visible');
+        assert.equal(status.server?.exit?.code, 1);
+        assert.ok(m.logs().file, 'failed startup retains its log path');
+      }
     if (behaviour === 'never-ready') assert.ok(os.kills.length >= 1, 'the stuck process is stopped');
   });
 }

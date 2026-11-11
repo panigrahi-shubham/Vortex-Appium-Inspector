@@ -12,7 +12,8 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { compatibility, type AppiumHttp, SESSION_ID } from './appium-client.ts';
+import { appiumChildEnv } from './android-env.ts';
+import { basePathPrefix, compatibility, type AppiumHttp, SESSION_ID } from './appium-client.ts';
 import type { AppiumInstall } from './appium-locator.ts';
 import { tailLog } from './log-file.ts';
 import { assertPort, sameProcess, type ProcessIdentity, type ProcessInspector } from './process-inspector.ts';
@@ -39,9 +40,11 @@ export interface ChildLike {
   on(event: 'exit', fn: (code: number | null, signal: NodeJS.Signals | null) => void): unknown;
   on(event: 'error', fn: (err: Error) => void): unknown;
   unref(): void;
+  /** Ends the process Vortex just spawned (used only when ownership cannot be recorded). */
+  kill?(signal?: NodeJS.Signals | number): boolean;
 }
 
-export type SpawnFn = (file: string, args: string[], logFd: number) => ChildLike;
+export type SpawnFn = (file: string, args: string[], logFd: number, env?: NodeJS.ProcessEnv) => ChildLike;
 
 export interface StepResult {
   step: string;
@@ -82,6 +85,8 @@ export interface ManagerDeps {
   nodePath?: string;
   pollMs?: number;
   log?: (msg: string) => void;
+  /** Environment for the Appium process (adds a detected Android SDK when ANDROID_HOME is missing). */
+  childEnv?: () => { env: NodeJS.ProcessEnv; note: string | null };
 }
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
@@ -96,10 +101,10 @@ export function assertHost(host: unknown, { loopbackOnly }: { loopbackOnly: bool
   return h;
 }
 
-const defaultSpawn: SpawnFn = (file, args, logFd) =>
+const defaultSpawn: SpawnFn = (file, args, logFd, env) =>
   // detached: Appium gets its own process group, so the whole tree can be stopped together and the
   // server can outlive the recorder when "stop on exit" is off (it is adopted again on the next start).
-  nodeSpawn(file, args, { stdio: ['ignore', logFd, logFd], detached: true, windowsHide: true });
+  nodeSpawn(file, args, { stdio: ['ignore', logFd, logFd], detached: true, windowsHide: true, ...(env ? { env } : {}) });
 
 export class ServerManager {
   readonly runs: RunRegistry;
@@ -121,6 +126,7 @@ export class ServerManager {
       nodePath: process.execPath,
       pollMs: 200,
       log: () => {},
+      childEnv: () => appiumChildEnv(),
       ...deps,
     } as Required<Omit<ManagerDeps, 'runs'>>;
     const { state, warning } = deps.store.load();
@@ -293,6 +299,7 @@ export class ServerManager {
   // ---- start ---------------------------------------------------------------------------------
 
   start(opts: { host?: string; port?: number } = {}) {
+    this.#cancelAutoRestart(); // a manual start replaces any pending automatic one
     return this.#serial(() => this.#start(opts));
   }
 
@@ -312,7 +319,8 @@ export class ServerManager {
     }
     if (!(await this.#deps.inspector.isPortFree(host, port))) {
       const pids = await this.#deps.inspector.listeningPids(port);
-      throw new ManagerError('PORT_IN_USE', 409, `Port ${port} is used by another program${pids?.length ? ` (PID ${pids.join(', ')})` : ''}. Choose another port in Server settings.`, { port, pids });
+      const suggestedPort = await this.#nextFreePort(host, port);
+      throw new ManagerError('PORT_IN_USE', 409, `Port ${port} is used by another program${pids?.length ? ` (PID ${pids.join(', ')})` : ''}.${suggestedPort ? ` Port ${suggestedPort} is free.` : ' Choose another port in Server settings.'}`, { port, pids, suggestedPort });
     }
 
     const install = await this.#deps.locate(s.appiumPath).catch((e: Error) => {
@@ -323,11 +331,15 @@ export class ServerManager {
     const logFile = path.join(this.#deps.logDir, `appium-${new Date().toISOString().replace(/[:.]/g, '-')}-${port}.log`);
     const fd = fs.openSync(logFile, 'a');
     const args = [install.entry, '--address', host, '--port', String(port), '--log-no-colors', '--log-timestamp'];
+    const prefix = basePathPrefix(s.basePath);
+    if (prefix) args.push('--base-path', prefix);
     let child: ChildLike;
     let spawnError: Error | null = null;
     let exited: { code: number | null; signal: string | null } | null = null;
+    const childEnv = this.#deps.childEnv();
+    if (childEnv.note) this.#notice(childEnv.note);
     try {
-      child = this.#deps.spawn(this.#deps.nodePath, args, fd);
+      child = this.#deps.spawn(this.#deps.nodePath, args, fd, childEnv.env);
     } finally {
       fs.closeSync(fd); // the child keeps its own copy of the descriptor
     }
@@ -348,8 +360,36 @@ export class ServerManager {
       identity = await this.#deps.inspector.info(child.pid);
       if (!identity) await sleep(this.#deps.pollMs);
     }
+    // The process can be alive while the operating system refuses to describe it (on Windows the lookup runs
+    // through PowerShell, which can be slow or blocked by policy). That is not a crash: wait a little longer.
+    for (let i = 0; i < 3 && !identity && !exited; i++) {
+      await sleep(this.#deps.pollMs * 5);
+      identity = await this.#deps.inspector.info(child.pid);
+    }
+    if (exited) {
+      // On Windows the child can exit while the PowerShell identity lookup is still running.
+      // Keep the failed startup visible, including its log, even when no identity was obtained.
+      this.#active = { id, ownership: 'vortex', host, port, pid: child.pid, pidSource: 'spawned', identity, state: 'starting', version: install.version, startedAt: new Date().toISOString(), logFile, exit: null, failedHealthChecks: 0 };
+      this.#markExited(this.#active, (exited as { code: number | null }).code, (exited as { signal: string | null }).signal, 'Appium exited during startup');
+      throw new ManagerError('STARTUP_FAILED', 500, `Appium exited immediately (exit code ${(exited as { code: number | null }).code}). See the log below.`, { log: tailLog(logFile, 40) });
+    }
     if (!identity) {
-      throw new ManagerError('STARTUP_FAILED', 500, `Appium exited immediately${exited ? ` (exit code ${(exited as { code: number | null }).code})` : ''}.`, { log: tailLog(logFile, 40) });
+      // Still running, but ownership cannot be proven later, so it must not be left behind as an orphan
+      // holding the port. Vortex holds the handle of the process it just spawned, so ending it here is safe.
+      let asked = false;
+      try {
+        asked = child.kill?.() ?? false;
+      } catch {
+        /* reported below */
+      }
+      for (let i = 0; i < 40 && !exited; i++) await sleep(Math.max(this.#deps.pollMs / 2, 2));
+      const stopped = !!exited;
+      throw new ManagerError(
+        'IDENTITY_UNAVAILABLE',
+        500,
+        `Appium started (PID ${child.pid}) but the operating system would not report its process details, so Vortex cannot prove it owns the server. ${stopped ? 'The process was stopped.' : `It could not be stopped${asked ? ' in time' : ''}: end PID ${child.pid} yourself, or use Connect existing.`}`,
+        { pid: child.pid, stopped, platform: this.#deps.inspector.platform, hint: this.#deps.inspector.platform === 'win32' ? 'Check that PowerShell can run: powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter ProcessId=$PID". Security software or a restricted PowerShell can block it.' : 'Check that `ps` is available to this user.', log: tailLog(logFile, 40) },
+      );
     }
     const rec: OwnedServerRecord = { id, host, port, pid: child.pid, identity, appiumEntry: install.entry, appiumVersion: install.version, logFile, startedAt: new Date().toISOString(), startedBy: this.instanceId };
     this.#state.owned.push(rec);
@@ -376,6 +416,14 @@ export class ServerManager {
     }
   }
 
+  /** First port after `port` (up to 20 further) with nothing listening, or null. */
+  async #nextFreePort(host: string, port: number): Promise<number | null> {
+    for (let p = port + 1; p <= Math.min(port + 20, 65535); p++) {
+      if ((await this.#deps.inspector.isPortFree(host, p)) && !(await this.#deps.http.status(host, p, 500))) return p;
+    }
+    return null;
+  }
+
   #onOwnedExit(id: string, code: number | null, signal: NodeJS.Signals | null) {
     if (this.#stoppingIds.has(id)) return; // an intentional stop handles its own bookkeeping
     const a = this.#active;
@@ -386,12 +434,59 @@ export class ServerManager {
 
   #markExited(a: ActiveServer, code: number | null, signal: string | null, reason: string) {
     const failedRuns = this.runs.failFor(a.id, reason);
+    const wasServing = a.state === 'running' || a.state === 'unhealthy';
     a.state = 'exited';
     a.exit = { code, signal, at: new Date().toISOString(), failedRuns };
     this.#state.owned = this.#state.owned.filter((r) => r.id !== a.id);
     this.#persist();
     this.#sessions.delete(a.id);
     this.#notice(`${reason}${failedRuns.length ? `; failed runs: ${failedRuns.join(', ')}` : ''}`);
+    // Only a server that was serving is restarted: one that dies while starting has a setup problem to fix.
+    if (wasServing && a.ownership === 'vortex') this.#scheduleAutoRestart({ host: a.host, port: a.port }, a.startedAt);
+  }
+
+  // ---- automatic restart (opt-in) --------------------------------------------------------------
+
+  #restartAttempts = 0;
+  #restartTimer: NodeJS.Timeout | null = null;
+
+  #cancelAutoRestart() {
+    if (this.#restartTimer) clearTimeout(this.#restartTimer);
+    this.#restartTimer = null;
+    this.#restartAttempts = 0;
+  }
+
+  /**
+   * After an unexpected exit of a Vortex-owned server: up to 3 attempts, waiting 1 s, 3 s and 9 s.
+   * The count starts again once a server has stayed up for a minute. External servers are never restarted.
+   */
+  #scheduleAutoRestart(target: { host: string; port: number }, startedAt: string | null) {
+    if (!this.#state.settings.autoRestart || this.#restartTimer) return;
+    const stableMs = this.#deps.pollMs * 300;
+    if (startedAt && Date.now() - Date.parse(startedAt) > stableMs) this.#restartAttempts = 0;
+    if (this.#restartAttempts >= 3) {
+      this.#notice('automatic restart gave up after 3 attempts; open the Appium log, fix the cause, then press Start Appium');
+      return;
+    }
+    const attempt = ++this.#restartAttempts;
+    const delay = this.#deps.pollMs * 5 * 3 ** (attempt - 1);
+    this.#notice(`restarting Appium automatically in ${Math.round(delay / 100) / 10} s (attempt ${attempt} of 3)`);
+    this.#restartTimer = setTimeout(() => {
+      this.#restartTimer = null;
+      void this.#serial(async () => {
+        // The tester may have acted meanwhile (started, connected, turned the setting off): then do nothing.
+        const now = this.#active;
+        if ((now && now.state !== 'exited') || !this.#state.settings.autoRestart) return;
+        try {
+          await this.#start(target);
+          this.#notice(`Appium was restarted automatically on ${target.host}:${target.port}`);
+        } catch (e) {
+          this.#notice(`automatic restart attempt ${attempt} failed: ${(e as Error).message.split('\n')[0]}`);
+          this.#scheduleAutoRestart(target, null);
+        }
+      });
+    }, delay);
+    this.#restartTimer.unref();
   }
 
   // ---- connect / disconnect --------------------------------------------------------------------
@@ -404,7 +499,7 @@ export class ServerManager {
         throw new ManagerError('ALREADY_CONNECTED', 409, `Already connected to ${this.#active.host}:${this.#active.port}. Disconnect (or stop the Vortex server) first.`);
       }
       const st = await this.#deps.http.status(host, port);
-      if (!st) throw new ManagerError('NOT_APPIUM', 502, `No Appium server answered at http://${host}:${port}/status.`);
+      if (!st) throw new ManagerError('NOT_APPIUM', 502, `No Appium server answered at http://${host}:${port}${basePathPrefix(this.#state.settings.basePath)}/status. If the server uses a base path such as /wd/hub, set it in Server settings.`);
       // A server Vortex started earlier is still Vortex-owned, but only if its process identity checks out.
       for (const rec of this.#state.owned) {
         if (rec.port !== port || !(LOOPBACK.has(host) && LOOPBACK.has(rec.host))) continue;
@@ -455,7 +550,7 @@ export class ServerManager {
     const a = this.#active;
     if (!a || a.state !== 'running') return null;
     const host = a.host.includes(':') ? `[${a.host}]` : a.host;
-    return { serverId: a.id, url: `http://${host}:${a.port}`, ownership: a.ownership };
+    return { serverId: a.id, url: `http://${host}:${a.port}${basePathPrefix(this.#state.settings.basePath)}`, ownership: a.ownership };
   }
 
   /** Deletes specific Vortex sessions (for example the ones a finished test run left behind). 404 counts as already closed. */
@@ -519,6 +614,7 @@ export class ServerManager {
   // ---- stop / restart ----------------------------------------------------------------------
 
   stop(opts: { cancelActiveRuns?: boolean } = {}) {
+    this.#cancelAutoRestart();
     return this.#serial(() => this.#stopActive(opts));
   }
 
@@ -665,6 +761,14 @@ export class ServerManager {
       num('stopGraceMs', 1_000, 60_000);
       bool('keepWarm');
       bool('stopOwnedOnExit');
+      bool('autoRestart');
+      if (patch.basePath !== undefined) {
+        const p = String(patch.basePath).trim() || '/';
+        if (!/^\/(?:[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*)?\/?$/.test(p)) throw new ManagerError('INVALID_SETTING', 400, 'Base path must look like / or /wd/hub');
+        const a = this.#active;
+        if (a && a.state !== 'exited' && basePathPrefix(p) !== basePathPrefix(s.basePath)) throw new ManagerError('SERVER_ACTIVE', 409, 'Stop or disconnect the Appium server before changing its base path.');
+        s.basePath = basePathPrefix(p) || '/';
+      }
       if (patch.appiumPath !== undefined) {
         const p = String(patch.appiumPath).trim();
         if (p && !path.isAbsolute(p)) throw new ManagerError('INVALID_SETTING', 400, 'Appium path must be an absolute path');
@@ -684,6 +788,7 @@ export class ServerManager {
 
   /** Called when the recorder exits. Stops the owned server only if configured to. */
   shutdown(): Promise<ActionReport | null> {
+    this.#cancelAutoRestart();
     return this.#serial(async () => {
       this.stopWatchdog();
       const a = this.#active;

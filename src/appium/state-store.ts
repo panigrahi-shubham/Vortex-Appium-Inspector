@@ -38,6 +38,10 @@ export interface ServerSettings {
   /** Chromedriver for WebView contexts: an executable, or a folder of versioned executables. Empty = Appium's own. */
   chromedriverExecutable: string;
   chromedriverExecutableDir: string;
+  /** URL prefix of the Appium server: "/" (Appium 2 and 3 default) or for example "/wd/hub" (Appium 1 style). */
+  basePath: string;
+  /** Start a Vortex-owned server again when it stops unexpectedly (at most 3 attempts). Never applies to external servers. */
+  autoRestart: boolean;
 }
 
 export interface PersistedState {
@@ -58,6 +62,8 @@ export const DEFAULT_SETTINGS: ServerSettings = {
   appiumPath: '',
   chromedriverExecutable: '',
   chromedriverExecutableDir: '',
+  basePath: '/',
+  autoRestart: false,
 };
 
 export interface StateStore {

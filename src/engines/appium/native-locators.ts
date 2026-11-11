@@ -9,13 +9,13 @@
 //       - 10 for an absolute XPath deeper than 6 levels
 //       - 5 / -10 when the lookup took over 300 ms / 1000 ms
 // clamped to 0..100. Only "verified unique" candidates can be recommended. Nothing is marked verified
-// without asking the device. Execution history is not used yet (no runs are linked to locators so far).
+// without asking the device. Stability across captures and replay history adjust the offline ranking; see stability.ts.
 
 const isDynamic = (s: string) => /\d{4,}|\b\d+[.,]\d+\b|[₹$€£]|\b\d+:\d+\b/.test(s);
 import type { NativeNode, PageSource } from './page-source.ts';
 import type { Session, Using } from './webdriver.ts';
 
-export type Strategy = 'id' | 'accessibility id' | 'uiautomator description' | 'uiautomator text' | 'uiautomator id + instance' | 'class + text' | 'xpath attributes' | 'xpath absolute' | 'coordinates';
+export type Strategy = 'id' | 'accessibility id' | 'uiautomator description' | 'uiautomator text' | 'uiautomator id + instance' | 'class + text' | 'xpath attributes' | 'xpath anchor' | 'xpath absolute' | 'coordinates';
 
 export const BASE_SCORE: Record<Strategy, number> = {
   id: 90,
@@ -23,6 +23,8 @@ export const BASE_SCORE: Record<Strategy, number> = {
   'uiautomator description': 78,
   'uiautomator text': 72,
   'class + text': 60,
+  // An XPath anchored to a nearby unique label: for controls that have no id, label or text of their own.
+  'xpath anchor': 58,
   'uiautomator id + instance': 55,
   'xpath attributes': 50,
   'xpath absolute': 20,
@@ -171,4 +173,65 @@ export async function verifyCandidates(session: Session, node: NativeNode, cands
 
 export function recommend(list: VerifiedCandidate[]): VerifiedCandidate | null {
   return list.find((c) => c.status === 'verified-unique') ?? null;
+}
+
+// ---- instant, offline ranking ------------------------------------------------------------------------
+// Selecting a control must not cost device round trips. Everything below is computed from the page source
+// already in memory; nothing here is ever labelled "verified".
+
+export type OfflineStatus = 'local-unique' | 'local-ambiguous' | 'not-checked';
+
+export interface RankedCandidate extends Candidate {
+  status: OfflineStatus;
+  score: number;
+  scoreNotes: string[];
+}
+
+export function rankOffline(node: NativeNode, ps: PageSource, candidates: Candidate[] = candidatesFor(node, ps)): RankedCandidate[] {
+  return candidates
+    .map((c): RankedCandidate => {
+      const status: OfflineStatus = c.localMatches === null ? 'not-checked' : c.localMatches === 1 ? 'local-unique' : 'local-ambiguous';
+      const notes = [`${c.strategy} base ${BASE_SCORE[c.strategy]}`];
+      let s = BASE_SCORE[c.strategy];
+      if (status === 'local-unique') (s += 5), notes.push('+5 unique on the captured screen (not yet checked on the device)');
+      if (status === 'local-ambiguous') (s -= 40), notes.push(`-40 ${c.localMatches} elements share this value on the captured screen`);
+      if (c.weaknesses.some((w) => w.includes('dynamic'))) (s -= 25), notes.push('-25 value looks dynamic');
+      if (c.strategy === 'xpath absolute' && node.depth > 6) (s -= 10), notes.push('-10 deep absolute path');
+      return { ...c, status, score: Math.max(0, Math.min(100, s)), scoreNotes: notes };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Best candidate that is unique on the captured screen and usable as an element lookup; null when none is. */
+export function recommendOffline(list: RankedCandidate[]): RankedCandidate | null {
+  return list.find((c) => c.status === 'local-unique' && c.using !== null && c.strategy !== 'xpath absolute') ?? list.find((c) => c.status === 'local-unique' && c.using !== null) ?? null;
+}
+
+/**
+ * Converts a chosen candidate into the locator stored in the recording (what the generated test will use).
+ * Returns null for strategies that cannot be replayed as an element lookup (coordinates).
+ */
+export function partsForCandidate(c: Candidate, node: NativeNode, ps: PageSource): { by: 'id' | 'label' | 'text' | 'xpath'; value: string; index?: number } | null {
+  const indexed = (field: 'resourceId' | 'contentDesc' | 'text') => {
+    const same = ps.nodes.filter((n) => n[field] === node[field]);
+    return same.length > 1 ? { index: same.indexOf(node) } : {};
+  };
+  switch (c.strategy) {
+    case 'id':
+    case 'uiautomator id + instance':
+      return node.resourceId ? { by: 'id', value: node.resourceId, ...indexed('resourceId') } : null;
+    case 'accessibility id':
+    case 'uiautomator description':
+      return node.contentDesc ? { by: 'label', value: node.contentDesc, ...indexed('contentDesc') } : null;
+    case 'uiautomator text':
+      return node.text ? { by: 'text', value: node.text, ...indexed('text') } : null;
+    case 'class + text':
+      return node.text ? { by: 'xpath', value: `//${node.className}[@text=${xpathLiteral(node.text)}]` } : null;
+    case 'xpath attributes':
+    case 'xpath anchor':
+    case 'xpath absolute':
+      return { by: 'xpath', value: c.value };
+    default:
+      return null;
+  }
 }

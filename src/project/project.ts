@@ -21,7 +21,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { generatePythonPlainFiles, generatePythonPom } from '../engines/appium/python-project.ts';
+import { generatePythonPlainFiles, generatePythonPom, type SharedLibrary } from '../engines/appium/python-project.ts';
 import type { Framework, GeneratedFile, GenerationIssue, Variant } from '../model/output.ts';
 import { migrateRecording, RecordingError, toUiSteps, type Recording } from '../model/recording.ts';
 
@@ -38,6 +38,13 @@ export interface BuildOptions {
   /** The variant that runs by default in Both mode. */
   target: Variant;
   size: { width: number; height: number } | null;
+  /** POM pages are shared with the other tests of the app through this library (null = private pages per test). */
+  library?: SharedLibrary | null;
+}
+
+export interface SharedOutput {
+  files: { path: string; content: string }[];
+  library: SharedLibrary;
 }
 
 export class ProjectError extends Error {
@@ -75,23 +82,25 @@ export function altName(p: string): string {
   return p;
 }
 
-export function buildCase(rec: Recording, ref: CaseRef, o: BuildOptions): { files: GeneratedFile[]; issues: GenerationIssue[]; target: Variant | null } {
+export function buildCase(rec: Recording, ref: CaseRef, o: BuildOptions): { files: GeneratedFile[]; issues: GenerationIssue[]; target: Variant | null; shared: SharedOutput | null } {
   checkRef(ref);
   if (!o.frameworks.length) throw new ProjectError('NO_FRAMEWORK', 400, 'Choose at least one framework.');
   const variants: Variant[] = o.mode === 'both' ? ['plain', 'pom'] : [o.mode];
   const files: GeneratedFile[] = [];
   const issues: GenerationIssue[] = [];
+  let shared: SharedOutput | null = null;
   for (const fw of o.frameworks) {
     for (const v of variants) {
       if (fw !== 'appium') throw new ProjectError('BAD_FRAMEWORK', 400, 'Only Appium is supported.');
-      const r = (v === 'plain' ? generatePythonPlainFiles : generatePythonPom)(rec, { moduleSlug: ref.module, caseSlug: ref.case, size: o.size });
+      const r: ReturnType<typeof generatePythonPom> = (v === 'plain' ? generatePythonPlainFiles : generatePythonPom)(rec, { moduleSlug: ref.module, caseSlug: ref.case, size: o.size, library: v === 'pom' ? o.library : null });
       issues.push(...r.issues);
       files.push(...r.files);
+      if (r.shared) shared = r.shared;
     }
   }
   const target: Variant | null = o.mode === 'both' ? o.target : null;
   if (target) for (const f of files) if (f.role === 'entry' && f.variant !== target) f.path = altName(f.path);
-  return { files: issues.length ? [] : files, issues, target: target ?? (o.mode as Variant) };
+  return { files: issues.length ? [] : files, issues, target: target ?? (o.mode as Variant), shared: issues.length ? null : shared };
 }
 
 // ---- manifest --------------------------------------------------------------------------------

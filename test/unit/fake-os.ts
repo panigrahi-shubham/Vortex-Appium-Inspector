@@ -19,7 +19,11 @@ export class FakeOS implements ProcessInspector {
   kills: { pid: number; opts: KillOptions }[] = [];
   deletedSessions: string[] = [];
   children = new Map<number, EventEmitter>();
-  spawns: { file: string; args: string[] }[] = [];
+  spawns: { file: string; args: string[]; env?: NodeJS.ProcessEnv }[] = [];
+  /** How many upcoming info() calls answer "unknown" even though the process is alive (a blocked or slow lookup). */
+  infoFailures = 0;
+  /** When true, a spawned child ignores kill() (a process that cannot be ended). */
+  childIgnoresKill = false;
   nextPid = 1000;
   tick = 0;
   /** what a freshly spawned Appium does: 'ready' | 'exit-immediately' | 'exit-during-startup' | 'never-ready' */
@@ -58,6 +62,10 @@ export class FakeOS implements ProcessInspector {
 
   // ---- ProcessInspector ----
   async info(pid: number) {
+    if (this.infoFailures > 0 && this.procs.has(pid)) {
+      this.infoFailures--;
+      return null;
+    }
     return this.procs.get(pid) ?? null;
   }
   async listeningPids(port: number) {
@@ -82,12 +90,20 @@ export class FakeOS implements ProcessInspector {
   };
 
   // ---- spawn ----
-  spawn: SpawnFn = (file, args) => {
-    this.spawns.push({ file, args });
+  spawn: SpawnFn = (file, args, _logFd, env) => {
+    this.spawns.push({ file, args, env });
     const port = Number(args[args.indexOf('--port') + 1]);
     const pid = this.nextPid++;
     const child = new EventEmitter() as EventEmitter & ChildLike;
-    Object.assign(child, { pid, unref: () => {} });
+    Object.assign(child, {
+      pid,
+      unref: () => {},
+      kill: () => {
+        if (this.childIgnoresKill) return false;
+        this.exit(pid, null, 'SIGTERM');
+        return true;
+      },
+    });
     this.children.set(pid, child);
     this.procs.set(pid, { pid, startTime: `t${++this.tick}`, commandLine: [file, ...args].join(' ') });
     const b = this.spawnBehaviour;

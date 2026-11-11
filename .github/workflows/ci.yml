@@ -1,0 +1,38 @@
+# Typecheck and the full test suite on Linux and Windows.
+# The tests need no phone: they use the simulated device in src/simulator and a stand-in for Appium.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-appium.txt
+      - run: npm ci
+      - run: python -m pip install -r requirements-appium.txt
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:integration

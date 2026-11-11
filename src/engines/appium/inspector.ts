@@ -2,6 +2,7 @@
 // take screenshots and verify locator candidates. Holds the device lease while open, so the ADB recorder
 // (whose `uiautomator dump` would collide with the UiAutomator2 server) does not touch the phone meanwhile.
 
+import { allCandidates } from './anchor-locators.ts';
 import { randomUUID } from 'node:crypto';
 import type { ServerManager } from '../../appium/server-manager.ts';
 import type { DeviceLeases } from '../../devices/device-lease.ts';
@@ -48,6 +49,8 @@ interface Open {
   release: () => void;
   startedAt: string;
   last: PageSource | null;
+  /** Raw XML of the last native screen read, kept so locators can be evaluated without asking the device. */
+  lastXml: string | null;
   web: WebState;
 }
 
@@ -92,7 +95,7 @@ export class AppiumInspector {
       const client = createWebDriverClient(ep.url);
       const session = await client.newSession(uiautomator2Capabilities({ udid: serial, newCommandTimeoutSec: s.sessionIdleTimeoutSec, chromedriverExecutable: s.chromedriverExecutable, chromedriverExecutableDir: s.chromedriverExecutableDir }), s.sessionStartupTimeoutMs);
       this.#manager.trackSession(session.id);
-      this.#open = { id, serial, recording, session, release, startedAt: new Date().toISOString(), last: null, web: { context: 'NATIVE_APP', snap: null, native: null, nativeWebViews: [], lastSwitchError: null, lastDomError: null } };
+      this.#open = { id, serial, recording, session, release, startedAt: new Date().toISOString(), last: null, lastXml: null, web: { context: 'NATIVE_APP', snap: null, native: null, nativeWebViews: [], lastSwitchError: null, lastDomError: null } };
       return this.status();
     } catch (e) {
       release();
@@ -112,6 +115,7 @@ export class AppiumInspector {
       ]);
       const ps = parsePageSource(xml);
       o.last = ps;
+      o.lastXml = xml;
       o.web.nativeWebViews = ps.nodes.filter(n => n.className === 'android.webkit.WebView' && n.bounds).map(n => ({index:n.index,resourceId:n.resourceId,bounds:n.bounds!}));
       return {
         img: 'data:image/png;base64,' + png.toString('base64'),
@@ -130,8 +134,10 @@ export class AppiumInspector {
     const o = this.#need();
     if (o.web.context !== 'NATIVE_APP') await this.webToNative();
     try {
-      const ps = parsePageSource(await o.session.pageSource());
+      const xml = await o.session.pageSource();
+      const ps = parsePageSource(xml);
       o.last = ps;
+      o.lastXml = xml;
       o.web.nativeWebViews = ps.nodes.filter(n => n.className === 'android.webkit.WebView' && n.bounds).map(n => ({ index: n.index, resourceId: n.resourceId, bounds: n.bounds! }));
       return ps.nodes.map(n => ({
         id: n.index, parentId: n.parent, childIds: n.children, depth: n.depth,
@@ -160,8 +166,29 @@ export class AppiumInspector {
     const node = ps.nodes[index];
     if (!node) throw new InspectorError('NO_ELEMENT', 404, `No element with index ${index} on the last screen read.`);
     try {
-      const verified = await verifyCandidates(o.session, node, candidatesFor(node, ps));
+      const verified = await verifyCandidates(o.session, node, await allCandidates(node, ps, o.lastXml));
       return { node: { index: node.index, className: node.className, resourceId: node.resourceId, text: node.text, contentDesc: node.contentDesc, packageName: node.packageName, bounds: node.bounds, flags: node.flags, path: node.path }, recommended: recommend(verified), candidates: verified };
+    } catch (e) {
+      throw this.#wrap(e, 'VERIFY_FAILED');
+    }
+  }
+
+  /** The last native screen read (parsed and raw), for locator work that must not touch the device. */
+  cachedSource(): { ps: PageSource; xml: string | null } {
+    const o = this.#need();
+    if (!o.last) throw new InspectorError('NO_SOURCE', 409, 'Read the screen first.');
+    return { ps: o.last, xml: o.lastXml };
+  }
+
+  /** Asks the device about one candidate only (one lookup and one rect), instead of the whole list. */
+  async verifyOne(index: number, strategy: string, value: string) {
+    const o = this.#need();
+    const ps = o.last, node = ps?.nodes[index];
+    if (!ps || !node) throw new InspectorError('NO_ELEMENT', 404, 'Select a control from a fresh screen.');
+    const cand = (await allCandidates(node, ps, o.lastXml)).find((c) => c.strategy === strategy && c.value === value);
+    if (!cand) throw new InspectorError('NO_CANDIDATE', 404, 'That locator is not one of the candidates of this control.');
+    try {
+      return (await verifyCandidates(o.session, node, [cand]))[0];
     } catch (e) {
       throw this.#wrap(e, 'VERIFY_FAILED');
     }
@@ -183,6 +210,7 @@ export class AppiumInspector {
       const xml = await o.session.pageSource();
       const ps = parsePageSource(xml);
       o.last = ps;
+      o.lastXml = xml;
       o.web.nativeWebViews = ps.nodes.filter((n) => n.className === 'android.webkit.WebView' && n.bounds).map((n) => ({ index: n.index, resourceId: n.resourceId, bounds: n.bounds! }));
       const contexts = await o.session.contexts();
       let details: unknown = null;

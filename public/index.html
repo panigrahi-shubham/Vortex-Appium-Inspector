@@ -1,11 +1,253 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vortex · Appium Inspector</title><link rel="stylesheet" href="/style.css"></head><body>
-<header><div><strong>VORTEX</strong><span class="badge">APPIUM EDITION · BETA</span><p>Inspect, record, verify.</p></div><span id="status">Connecting…</span><button id="setup">Server & setup</button></header>
-<div id="notice" role="status">Start or connect an Appium server, choose your phone, and attach.</div>
-<section class="connection"><label>Phone<select id="device"><option>Discovering phones…</option></select></label><button id="devices">↻</button><label class="package">App package<input id="pkg" placeholder="com.indiamart.m" value="com.indiamart.m"></label><button id="attach" class="primary">Attach session</button><button id="detach">Detach</button><button id="refresh">Refresh screen</button><label class="inline"><input id="autoWeb" type="checkbox" checked>Auto WebView</label></section>
-<main><section class="panel phone-panel"><div class="panel-heading"><h2>Phone</h2><span id="dimensions"></span></div><div class="toolbar"><button data-global="launch_app">Launch app</button><button data-global="press" data-key="BACK">Back</button><button data-global="press" data-key="HOME">Home</button><button data-global="close_app">Close app</button></div><label class="inline"><input id="record" type="checkbox" checked> Record successful actions</label><div id="phone"><img id="screenshot" alt="Attach to display your phone"><div id="highlight"></div></div><p id="point" class="muted">Click the screenshot to inspect a control. Selecting never taps the phone.</p><div class="toolbar"><button data-swipe="up">Swipe ↑</button><button data-swipe="down">Swipe ↓</button><button id="wait">Wait 1.5 s</button></div></section>
-<section class="panel controls-panel"><div class="panel-heading"><h2>Inspect controls</h2><select id="context"><option value="NATIVE_APP">Native</option></select></div><p id="webStatus" class="muted">No screen captured.</p><input id="search" type="search" placeholder="Search text, ID, label or class" aria-label="Search controls"><div id="tree" class="scroll"></div><div id="selected"><strong>No control selected</strong></div><div class="toolbar"><button id="verify">Verify locators</button><label class="inline"><input id="coordinates" type="checkbox">Coordinate tap</label></div><div id="locators" class="scroll"></div><label>Chosen locator<input id="selector" placeholder="Select a control or enter a DOM selector"></label><select id="using"><option value="css selector">CSS (WebView)</option><option value="xpath">XPath (WebView)</option></select><div class="toolbar"><button id="tap" class="primary">Tap</button><button id="clear">Clear input</button><button id="scrollTo">Scroll to</button></div><label>Text to fill<input id="text" placeholder="Replaces the current input value"></label><button id="fill">Fill input</button><div class="assert-row"><select id="assertion"><option value="visible">Visible</option><option value="hidden">Hidden</option><option value="text">Text equals</option><option value="contains">Text contains</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option><option value="checked">Checked</option><option value="unchecked">Unchecked</option><option value="selected">Selected</option><option value="unselected">Unselected</option><option value="count">Count equals</option></select><input id="expected" placeholder="Expected value"><button id="assert">Assert</button></div></section>
-<section class="panel recording-panel"><div class="panel-heading"><h2>Recording <span id="stepCount">0</span></h2><button id="undo">Undo</button><button id="reset">Clear</button></div><div id="steps" class="scroll"></div><div class="fields"><label>Test name<input id="name" value="recorded flow"></label><label>Module<input id="module" value="general"></label><label>Python output<select id="mode"><option value="plain">Plain pytest</option><option value="pom">Page Object Model</option><option value="both">Both (run Plain)</option></select></label></div><div class="toolbar"><button id="preview">Preview</button><button id="save" class="primary">Save test</button><button id="run">Run saved test</button></div><select id="files" aria-label="Generated file"></select><pre id="code">Your Appium Python test will appear here.</pre><h3>Saved tests</h3><select id="saved" aria-label="Saved tests"><option value="">Save a test first</option></select><h3>Run result <button id="cancel">Cancel run</button></h3><pre id="output">No replay yet. Running detaches the Inspector and hands the phone to pytest.</pre><h3>Recent runs</h3><div id="history"></div></section></main>
-<dialog id="serverDialog"><h2>Appium server & setup</h2><p>Close other tools that control this phone before attaching. One device supports one automation owner.</p><label>Appium port<input id="appiumPort" type="number" value="4723"></label><div class="toolbar"><button id="serverStart" class="primary">Start Appium</button><button id="serverConnect">Connect existing</button><button id="serverStop">Stop owned server</button></div><label>Chromedriver executable (optional, for debuggable WebViews)<input id="chromedriver" placeholder="C:\tools\chromedriver.exe"></label><button id="settings">Save Chromedriver path</button><pre id="environment">Checking…</pre><p>Requires Node 24.15+, Android SDK/ADB, Java 17+, Appium with UiAutomator2, and Python with requirements-appium.txt.</p><pre>npm install -g appium
-appium driver install uiautomator2
-py -3 -m pip install -r requirements-appium.txt</pre><button id="dialogClose">Close</button></dialog>
-<script type="module" src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vortex · Appium Inspector</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>VORTEX</strong><span class="badge">APPIUM EDITION · 1.0</span>
+        <p>Inspect, record, verify.</p>
+      </div>
+      <span id="status">Connecting…</span>
+      <button id="shortcuts" title="Keyboard shortcuts">?</button>
+      <button id="setup">Server &amp; setup</button>
+    </header>
+    <div id="notice" role="status">Start or connect an Appium server, choose your phone, and attach.</div>
+
+    <section class="connection">
+      <label
+        >Phone<select id="device">
+          <option>Discovering phones…</option>
+        </select></label
+      >
+      <button id="devices" title="Look for phones again">↻</button>
+      <label class="package">App package<input id="pkg" placeholder="com.indiamart.m" value="com.indiamart.m" /></label>
+      <button id="attach" class="primary">Attach session</button>
+      <button id="detach">Detach</button>
+      <button id="refresh">Refresh screen</button>
+      <label class="inline"><input id="autoWeb" type="checkbox" checked />Auto WebView</label>
+    </section>
+
+    <main>
+      <!-- Phone -->
+      <section class="panel phone-panel">
+        <div class="panel-heading">
+          <h2>Phone</h2>
+          <span id="dimensions"></span>
+        </div>
+        <div class="toolbar">
+          <button data-global="launch_app">Launch app</button>
+          <button data-global="press" data-key="BACK">Back</button>
+          <button data-global="press" data-key="HOME">Home</button>
+          <button data-global="close_app">Close app</button>
+        </div>
+        <label class="inline"><input id="record" type="checkbox" checked /> Record successful actions</label>
+        <label class="inline" title="Click a control on the screenshot to tap it on the phone and record the step in one go">
+          <input id="quick" type="checkbox" /> Quick record: a click taps and records
+        </label>
+        <div id="phone">
+          <img id="screenshot" alt="Attach to display your phone" />
+          <div id="matches"></div>
+          <div id="highlight"></div>
+        </div>
+        <p id="point" class="muted">Click the screenshot to inspect a control. Selecting never taps the phone.</p>
+        <div class="toolbar">
+          <button data-swipe="up">Swipe ↑</button>
+          <button data-swipe="down">Swipe ↓</button>
+          <button id="wait">Wait 1.5 s</button>
+          <button data-global="hide_keyboard">Hide keyboard</button>
+        </div>
+      </section>
+
+      <!-- Inspect -->
+      <section class="panel controls-panel">
+        <div class="panel-heading">
+          <h2>Inspect controls</h2>
+          <select id="context">
+            <option value="NATIVE_APP">Native</option>
+          </select>
+        </div>
+        <p id="webStatus" class="muted">No screen captured.</p>
+
+        <div class="locator-search">
+          <select id="searchUsing" aria-label="Locator type">
+            <option value="auto">Auto</option>
+            <option value="id">ID</option>
+            <option value="accessibility id">Accessibility ID</option>
+            <option value="text">Text equals</option>
+            <option value="text contains">Contains</option>
+            <option value="class name">Class</option>
+            <option value="xpath">XPath</option>
+            <option value="-android uiautomator">UiSelector</option>
+          </select>
+          <input id="locatorSearch" type="search" placeholder="Try a locator: id, text, //xpath or new UiSelector()…" aria-label="Try a locator" />
+        </div>
+        <p id="searchResult" class="muted">Matches are counted on the captured screen, instantly, without asking the phone.</p>
+
+        <input id="search" type="search" placeholder="Filter the list by text, ID, label or class" aria-label="Search controls" />
+        <div id="tree" class="scroll"></div>
+        <div id="selected"><strong>No control selected</strong></div>
+        <div class="toolbar">
+          <button id="verify" title="Check every candidate on the phone">Verify all on phone</button>
+          <label class="inline"><input id="coordinates" type="checkbox" />Coordinate tap</label>
+        </div>
+        <div id="locators" class="scroll"></div>
+        <label
+          >Locator used for the next action
+          <input id="selector" placeholder="Select a control, then click a locator above to use it" />
+        </label>
+        <select id="using">
+          <option value="css selector">CSS (WebView)</option>
+          <option value="xpath">XPath (WebView)</option>
+        </select>
+        <div class="toolbar">
+          <button id="tap" class="primary">Tap</button>
+          <button id="longpress">Long press</button>
+          <button id="doubletap">Double tap</button>
+          <button id="clear">Clear input</button>
+          <button id="scrollTo">Scroll to</button>
+        </div>
+        <label>Text to fill<input id="text" placeholder="Replaces the current input value. Press Enter to fill." /></label>
+        <div class="secret-row">
+          <label class="inline" title="The value is typed on the phone once and never saved. The test reads it from this environment variable.">
+            <input id="secret" type="checkbox" /> Secret, read from
+          </label>
+          <input id="secretEnv" value="VORTEX_SECRET_PASSWORD" aria-label="Environment variable for the secret" />
+          <button id="fill">Fill input</button>
+        </div>
+        <div class="assert-row">
+          <select id="assertion">
+            <option value="visible">Visible</option>
+            <option value="hidden">Hidden</option>
+            <option value="text">Text equals</option>
+            <option value="contains">Text contains</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+            <option value="checked">Checked</option>
+            <option value="unchecked">Unchecked</option>
+            <option value="selected">Selected</option>
+            <option value="unselected">Unselected</option>
+            <option value="count">Count equals</option>
+          </select>
+          <input id="expected" placeholder="Expected value" />
+          <button id="assert">Assert</button>
+        </div>
+        <div class="extra-row">
+          <input id="extraValue" placeholder="Link to open, or checkpoint name" aria-label="Link or checkpoint name" />
+          <button id="deepLink" title="Open a deep link in the app and record it">Open link</button>
+          <button id="checkpoint" title="Record a screenshot checkpoint: the test saves a picture here">Checkpoint</button>
+          <button id="checkScreen" title="Record a check that the app is on this screen (activity)">Check screen</button>
+        </div>
+      </section>
+
+      <!-- Recording -->
+      <section class="panel recording-panel">
+        <div class="panel-heading">
+          <h2>Recording <span id="stepCount">0</span></h2>
+          <button id="undo">Undo</button>
+          <button id="reset">Clear</button>
+        </div>
+        <div id="steps" class="scroll"></div>
+        <div class="fields">
+          <label>Test name<input id="name" value="recorded flow" /></label>
+          <label>Module<input id="module" value="general" /></label>
+          <label
+            >Python output<select id="mode">
+              <option value="plain">Plain pytest</option>
+              <option value="pom">Page Object Model</option>
+              <option value="both">Both (run Plain)</option>
+            </select></label
+          >
+        </div>
+        <label class="inline" title="Page Object Model only. Tests of the same app reuse and extend one set of page classes in generated/_shared instead of a private copy each.">
+          <input id="sharedPages" type="checkbox" /> Share page objects across tests (POM)
+        </label>
+        <div class="toolbar">
+          <button id="preview">Preview</button>
+          <button id="save" class="primary">Save test</button>
+          <button id="run">Run saved test</button>
+        </div>
+        <div class="page-row">
+          <input id="pageName" placeholder="Screen name, for example Login" aria-label="Screen name" />
+          <button id="pagePreview" title="Generate a page object for every usable control on this screen">Page object for this screen</button>
+          <button id="pageSave">Save page object</button>
+        </div>
+        <select id="files" aria-label="Generated file"></select>
+        <pre id="code">Your Appium Python test will appear here.</pre>
+        <h3>Saved tests</h3>
+        <select id="saved" aria-label="Saved tests">
+          <option value="">Save a test first</option>
+        </select>
+        <h3>Run result <button id="cancel">Cancel run</button></h3>
+        <pre id="output">No replay yet. Running detaches the Inspector and hands the phone to pytest.</pre>
+        <div id="repair" hidden></div>
+        <h3>Recent runs</h3>
+        <div id="history"></div>
+      </section>
+    </main>
+
+    <dialog id="serverDialog">
+      <div class="dialog-head">
+        <h2>Appium server &amp; setup</h2>
+        <button id="dialogClose">Close</button>
+      </div>
+      <p class="muted">Close other tools that control this phone before attaching. One phone supports one automation owner.</p>
+
+      <div id="serverState" class="server-state">Checking…</div>
+      <div id="serverNotices" class="muted"></div>
+
+      <div class="toolbar">
+        <label class="port">Port<input id="appiumPort" type="number" value="4723" min="1024" max="65535" /></label>
+        <button id="serverStart" class="primary">Start Appium</button>
+        <button id="serverConnect">Connect existing</button>
+        <button id="serverRestart">Restart</button>
+        <button id="serverStop">Stop owned server</button>
+        <button id="serverDisconnect">Disconnect</button>
+      </div>
+      <div id="serverOffer" class="offer" hidden></div>
+
+      <h3>Setup check <button id="preflight">Run setup check</button></h3>
+      <div id="checks" class="checks">Run the setup check to see what a real phone session needs on this computer.</div>
+
+      <h3>Appium log <button id="logRefresh">Refresh</button> <button id="logCopy">Copy</button></h3>
+      <pre id="serverLog" class="log">No log yet. The log of a server started by Vortex appears here, including when it fails to start.</pre>
+
+      <h3>Settings</h3>
+      <div class="settings-grid">
+        <label>Appium path (empty = find automatically)<input id="appiumPath" placeholder="C:\Users\you\AppData\Roaming\npm\node_modules\appium" /></label>
+        <label>Server start timeout (seconds)<input id="startTimeout" type="number" min="5" max="600" /></label>
+        <label>Attach timeout (seconds)<input id="sessionTimeout" type="number" min="10" max="900" /></label>
+        <label>Chromedriver executable (for debuggable WebViews)<input id="chromedriver" placeholder="C:\tools\chromedriver.exe" /></label>
+        <label>Base path (/ for Appium 2 and 3, /wd/hub for Appium 1 style)<input id="basePath" placeholder="/" /></label>
+        <label class="inline"><input id="stopOnExit" type="checkbox" /> Stop the owned server when Vortex closes</label>
+        <label class="inline"><input id="autoRestart" type="checkbox" /> Restart the owned server automatically if it stops unexpectedly (up to 3 attempts)</label>
+      </div>
+      <button id="settings">Save settings</button>
+    </dialog>
+
+    <dialog id="shortcutsDialog">
+      <div class="dialog-head">
+        <h2>Keyboard shortcuts</h2>
+        <button id="shortcutsClose">Close</button>
+      </div>
+      <p class="muted">Shortcuts work when the cursor is not in a text box.</p>
+      <table class="keys">
+        <tr><td><kbd>/</kbd></td><td>Try a locator</td></tr>
+        <tr><td><kbd>Q</kbd></td><td>Quick record on or off</td></tr>
+        <tr><td><kbd>T</kbd></td><td>Tap the selected control</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Type into the selected control (then Enter)</td></tr>
+        <tr><td><kbd>A</kbd></td><td>Assert the selected control is visible</td></tr>
+        <tr><td><kbd>V</kbd></td><td>Verify all locators on the phone</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Refresh the screen</td></tr>
+        <tr><td><kbd>U</kbd></td><td>Undo the last step</td></tr>
+        <tr><td><kbd>S</kbd></td><td>Save the test</td></tr>
+        <tr><td><kbd>?</kbd></td><td>This list</td></tr>
+      </table>
+    </dialog>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

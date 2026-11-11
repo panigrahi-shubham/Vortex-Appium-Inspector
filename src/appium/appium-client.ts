@@ -15,11 +15,19 @@ const urlHost = (host: string) => (host.includes(':') && !host.startsWith('[') ?
 
 export const SESSION_ID = /^[A-Za-z0-9-]{1,128}$/;
 
-export function createAppiumHttp(fetchFn: typeof fetch = fetch): AppiumHttp {
+/** "/" -> "", "/wd/hub/" -> "/wd/hub": the prefix placed between host:port and the WebDriver path. */
+export function basePathPrefix(basePath: string | undefined): string {
+  const p = String(basePath ?? '/').trim().replace(/\/+$/, '');
+  return p && p !== '/' ? (p.startsWith('/') ? p : `/${p}`) : '';
+}
+
+/** `basePath` is read on every call, so a changed setting applies without rebuilding the client. */
+export function createAppiumHttp(fetchFn: typeof fetch = fetch, basePath: () => string = () => '/'): AppiumHttp {
+  const prefix = () => basePathPrefix(basePath());
   return {
     async status(host, port, timeoutMs = 2_000) {
       try {
-        const r = await fetchFn(`http://${urlHost(host)}:${port}/status`, { signal: AbortSignal.timeout(timeoutMs) });
+        const r = await fetchFn(`http://${urlHost(host)}:${port}${prefix()}/status`, { signal: AbortSignal.timeout(timeoutMs) });
         if (!r.ok) return null;
         const j = (await r.json()) as { value?: { ready?: boolean; message?: string; build?: { version?: string } } };
         if (!j || typeof j !== 'object' || !j.value) return null; // something answers, but it is not Appium
@@ -30,7 +38,7 @@ export function createAppiumHttp(fetchFn: typeof fetch = fetch): AppiumHttp {
     },
     async deleteSession(host, port, sessionId, timeoutMs = 10_000) {
       if (!SESSION_ID.test(sessionId)) throw new Error('invalid session id');
-      const r = await fetchFn(`http://${urlHost(host)}:${port}/session/${sessionId}`, { method: 'DELETE', signal: AbortSignal.timeout(timeoutMs) });
+      const r = await fetchFn(`http://${urlHost(host)}:${port}${prefix()}/session/${sessionId}`, { method: 'DELETE', signal: AbortSignal.timeout(timeoutMs) });
       // 404 means the session is already gone, which is the state we want.
       if (!r.ok && r.status !== 404) throw new Error(`DELETE /session/${sessionId} returned HTTP ${r.status}`);
     },

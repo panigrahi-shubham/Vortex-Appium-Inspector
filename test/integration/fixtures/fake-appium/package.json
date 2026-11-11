@@ -1,0 +1,7 @@
+{
+  "name": "appium",
+  "version": "3.9.0",
+  "private": true,
+  "description": "Stand-in for the Appium server, used only by Vortex's own tests. It is not Appium.",
+  "bin": { "appium": "index.js" }
+}
