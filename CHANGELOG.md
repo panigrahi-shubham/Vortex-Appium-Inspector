@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added: simple inspection with visible Text, ID/label and Point choices, Python previews, and instant hover suggestions from the captured hierarchy.
+- Added: optional auto-refresh (2 or 5 seconds), pausing for pinned selections, editing, dialogs and hidden Inspector tabs; Resume live and stop-on-capture-failure behavior.
+- Fixed: locator lists return to the top after selecting another control, keeping recommended text/ID candidates visible.
+- Fixed: native screenshot dimensions now define the coordinate space. On the Moto G32 the app window was 1080×2175 while the screenshot was 1080×2400, shifting highlights and point taps. Display, bounds and recorded coordinate validation now use full screenshot pixels.
+
 - Added: explicit Inspect element mode and clipboard actions for the selected locator, Python lookup, element details and generated file code.
 - Added: New file dialog and `POST /api/new`, creating real Plain/POM starter files without overwriting an existing test. Failed creation preserves current recorded steps.
 - Added: Tutorial tab explaining setup, inspection, copying, file creation, recording, saving, replay and troubleshooting, with buttons to find each control.

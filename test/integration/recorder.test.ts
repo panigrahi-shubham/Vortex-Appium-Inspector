@@ -20,6 +20,20 @@ async function setup(t: {after(fn:()=>Promise<void>):void}, options = {}) {
 }
 const byId=(app:Application,suffix:string)=>app.snapshot!.nodes.find(n=>n.resourceId.endsWith(suffix))!.index;
 const act=(app:Application,type:string,extra:Record<string,unknown>={})=>app.action({token:app.snapshot!.token,type,...extra});
+
+test('full screenshot pixels map point taps even when the app window excludes Android system bars', async t => {
+  const { app } = await setup(t);
+  const session = app.inspector.session();
+  const xml = (await session.pageSource()).replace(/ width="1080" height="2400"/, '');
+  session.pageSource = async () => xml;
+  session.windowRect = async () => ({ x: 0, y: 90, width: 1080, height: 2175 });
+  const capture = await app.capture(false);
+  assert.equal(capture.width, 1080);
+  assert.equal(capture.height, 2400, 'the displayed screenshot and coordinate validation share full-screen pixels');
+  await act(app, 'tap', { coordinate: true, x: 500, y: 2300 });
+  assert.equal(app.steps.at(-1)!.y, 2300);
+  assert.deepEqual(app.recordedSize, { width: 1080, height: 2400 });
+});
 test('Appium recording: fill, assert, navigate, coordinates, Plain/POM save and real pytest replay', {timeout:120_000}, async t=>{
   const {app,mock}=await setup(t);
   assert.equal(mock.sessions.size,1);

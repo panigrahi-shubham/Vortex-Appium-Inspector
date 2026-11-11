@@ -13,6 +13,7 @@ import { test } from 'node:test';
 import { BASE_SCORE, candidatesFor, recommend, score, uiStr, verifyCandidates, xpathLiteral, type Candidate } from '../../src/engines/appium/native-locators.ts';
 import { hitTest, parsePageSource } from '../../src/engines/appium/page-source.ts';
 import type { Session } from '../../src/engines/appium/webdriver.ts';
+import { encodePng, pngDimensions } from '../../src/visual/png.ts';
 
 const XML = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <hierarchy index="0" class="hierarchy" rotation="0" width="1080" height="2400">
@@ -29,6 +30,16 @@ const XML = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 </hierarchy>`;
 
 const ps = parsePageSource(XML);
+
+test('screenshot dimensions use the PNG header and reject incomplete or unrelated data', () => {
+  const png = encodePng({ width: 2, height: 3, data: new Uint8Array(2 * 3 * 4) });
+  assert.deepEqual(pngDimensions(png), { width: 2, height: 3 });
+  assert.equal(pngDimensions(png.subarray(0, 20)), null);
+  assert.equal(pngDimensions(Buffer.alloc(24)), null);
+  const invalid = Buffer.from(png);
+  invalid.writeUInt32BE(0, 16);
+  assert.equal(pngDimensions(invalid), null);
+});
 
 // Risk: properties are invented, or entities and positions are decoded wrongly.
 // Given a UiAutomator2 source, When parsed, Then attributes, flags, bounds and absolute paths match the XML exactly.

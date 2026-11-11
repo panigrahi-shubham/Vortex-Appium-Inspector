@@ -5,7 +5,7 @@ The extracted v1.0.0 source was merged into the original `vortex-appium-recorder
 ## Windows automated checks
 
 - Node.js 24.15.0: `npm run typecheck` passed.
-- `npm test` from the merged original folder, including the workspace UI additions: **95 passed, 0 failed, 0 skipped**.
+- `npm test` from the merged original folder, including the workspace UI additions and coordinate mapping fix: **99 passed, 0 failed, 0 skipped**.
 - The suite includes browser recording/save/replay and repair, generated Plain/POM execution by pytest, and actual child-process/HTTP server lifecycle tests. The phone and Appium endpoints in this suite are simulated.
 - Windows testing exposed and fixed loss of startup failure status/logs when a child exits during process-identity lookup. Regression checks cover the exit state, exit code and retained log path.
 - Readiness polling now backs off on HTTP 503 while the server initializes. The restart test waits for both the running process and its completion notice.
@@ -34,3 +34,13 @@ This smoke test does not complete every item in [ACCEPTANCE.md](ACCEPTANCE.md). 
 - New-file tests verify on-disk creation, duplicate-name refusal, preservation of current steps after a rejected creation, and replacing the empty starter with newly recorded steps. Empty Plain/POM starters were executed by standalone pytest against an unreachable Appium URL: both skipped without opening a device session. Vortex itself blocks replay of an empty starter.
 - A separate browser check against the running real-device session verified Inspect and all three element-copy actions on the Moto G32. The New file dialog was opened and cancelled, tutorial desktop/mobile layouts were inspected, no `/api/action` requests were sent, and the user's two recorded steps were preserved. Actual starter creation was tested in isolated test output, not against the user's current recording.
 - Device screenshots and UI proof images remain local in `.vortex/ui-proof/` and are excluded from Git.
+
+## Simple live inspection and IndiaMART follow-up
+
+- Added an instant hover preview and a pinned selector/Python card with Text, ID/label and Point choices. Hover uses the captured hierarchy without API requests. Simple text/ID choices reuse the captured candidates; exact duplicate occurrences are represented with indexed XPath when needed. A delayed-inspection browser check confirms the initial suggestion appears before the server reply.
+- Auto-refresh was tested with captures deliberately taking longer than its 2-second interval: requests did not overlap. Tests verify pausing for pinned selection, editing and Tutorial view; Resume live; stopping after capture failure; and disabling copying for stale targets.
+- The locator list now scrolls to its top when a new control is selected. Point Python code, the selected screenshot position and the recorded coordinates are checked for agreement.
+- The Moto G32 exposed an actual mapping mismatch: Appium's app window was 1080×2175, while its PNG screenshot was 1080×2400. Native capture now reads PNG dimensions first, using the full screenshot coordinate space for highlights, hit testing and point validation. A regression test covers taps below the smaller app-window height.
+- A real IndiaMART browser check verified hover, text/point selection, Python copying and auto-refresh with the corrected 1080×2400 coordinate space, preserving the user's five recorded steps.
+- A further real-device check used an unrecorded coordinate tap to open IndiaMART's Buy Leads tab, verified a native text selector inside the WebView as unique on the phone, and returned Home with another unrecorded point tap. Only `NATIVE_APP` was available and no DOM context was connected. The five recorded steps remained unchanged; no buyer contact action was executed.
+- This implements a Maestro-style inspection experience through the existing Appium/Python stack. It does not add Maestro CLI execution or unlock unexposed WebView DOM content.

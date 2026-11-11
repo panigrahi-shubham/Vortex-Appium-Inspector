@@ -81,6 +81,7 @@ const shot = async (page: Page, name: string) => {
 
 /** Clicks the screenshot at the centre of the control whose resource-id ends with `suffix`. */
 async function clickOnPhone(page: Page, suffix: string) {
+  await page.locator('#screenshot').scrollIntoViewIfNeeded();
   const rel = await page.evaluate(async (s) => {
     const status = await (await fetch('/api/status')).json();
     const n = status.screen.nodes.find((x: { resourceId: string }) => x.resourceId.endsWith(s));
@@ -404,5 +405,117 @@ test('inspect and clipboard tools, new file creation and tutorial work together 
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'tutorial fits a narrow viewport');
   await shot(page, 'vortex-tutorial.png');
+  assert.deepEqual(errors, []);
+});
+
+test('simple inspection previews without round trips and copies text, ID and the exact point used for recording', async (t) => {
+  const { page, base, errors } = await open(t, ['--mock']);
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
+  await page.waitForFunction(() => document.querySelector('#device option')?.textContent?.includes('mock-device'));
+  await page.locator('#pkg').fill('com.yourname.tradehub');
+  await page.locator('#attach').click();
+  await noticeHas(page, 'Session attached');
+  let inspections = 0, actions = 0;
+  page.on('request', r => {
+    if (r.url().endsWith('/api/inspect')) inspections++;
+    if (r.url().endsWith('/api/action')) actions++;
+  });
+  const target = await page.evaluate(async () => {
+    const s = await (await fetch('/api/status')).json();
+    return s.screen.nodes.find((n: { resourceId: string }) => n.resourceId.endsWith('home_my_products_button'));
+  });
+  await page.locator('#screenshot').scrollIntoViewIfNeeded();
+  const image = (await page.locator('#screenshot').boundingBox())!;
+  const position = { x: image.x + (target.bounds.x + target.bounds.w / 2) / 1080 * image.width, y: image.y + (target.bounds.y + target.bounds.h / 2) / 2400 * image.height };
+  await page.mouse.move(position.x, position.y);
+  assert.match(await page.locator('#hoverLocator').innerText(), /home_my_products_button/);
+  assert.equal(inspections, 0, 'hover needs no API lookup');
+  let release!: () => void;
+  const gate = new Promise<void>(r => release = r);
+  t.after(() => release());
+  await page.route('**/api/inspect', async route => { await gate; await route.continue(); });
+  await page.mouse.click(position.x, position.y);
+  await page.waitForFunction(() => document.querySelector('#bestLocatorValue')?.textContent?.includes('home_my_products_button'));
+  assert.equal(await page.locator('#copyLocator').isDisabled(), true, 'the capture preview appears even while full inspection is pending');
+  release();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyLocator')?.disabled);
+  await page.unroute('**/api/inspect');
+  await page.locator('#simpleText').click();
+  assert.match(await page.locator('#bestLocatorValue').innerText(), /new UiSelector\(\)\.text\(/);
+  await page.locator('#copyPython').click();
+  assert.match(await page.evaluate(() => navigator.clipboard.readText()), /AppiumBy\.ANDROID_UIAUTOMATOR/);
+  await page.locator('#simpleId').click();
+  await page.locator('#copyLocator').click();
+  assert.match(await page.evaluate(() => navigator.clipboard.readText()), /home_my_products_button$/);
+  await page.evaluate(() => { document.querySelector('#locators')!.scrollTop = 100000; });
+  await page.locator('#tree button').filter({ hasText: 'home_search_input' }).click();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyLocator')?.disabled);
+  assert.equal(await page.locator('#locators').evaluate(e => e.scrollTop), 0, 'selecting a different element reveals the best candidates');
+  await page.locator('#simplePoint').click();
+  const box = (await page.locator('#screenshot').boundingBox())!;
+  const clickX = Math.ceil(box.x) + 10, clickY = Math.ceil(box.y) + 10;
+  await page.mouse.click(clickX, clickY);
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyPython')?.disabled);
+  const expectedX = Math.floor((clickX - box.x) / box.width * 1080), expectedY = Math.floor((clickY - box.y) / box.height * 2400);
+  assert.equal(await page.locator('#bestLocatorValue').innerText(), `${expectedX},${expectedY}`);
+  await page.locator('#copyPython').click();
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `driver.execute_script("mobile: clickGesture", {"x": ${expectedX}, "y": ${expectedY}})`);
+  assert.equal(actions, 0, 'inspection and selector choices do not tap the phone');
+  await shot(page, 'vortex-simple-inspector.png');
+  await page.locator('#tap').click();
+  await stepCount(page, 1);
+  const state = await (await fetch(base + '/api/status')).json() as { steps: { mode: string; x: number; y: number }[] };
+  assert.equal(state.steps[0].mode, 'coord');
+  assert.equal(state.steps[0].x, expectedX);
+  assert.equal(state.steps[0].y, expectedY);
+  assert.deepEqual(errors, []);
+});
+
+test('auto-refresh serializes slow captures, pins selection, pauses for editing/tutorial, and stops on failure', async (t) => {
+  const { page, errors } = await open(t, ['--mock']);
+  await page.waitForFunction(() => document.querySelector('#device option')?.textContent?.includes('mock-device'));
+  await page.locator('#pkg').fill('com.yourname.tradehub');
+  await page.locator('#attach').click();
+  await noticeHas(page, 'Session attached');
+  let captures = 0, inFlight = 0, maxInFlight = 0, fail = false;
+  await page.route('**/api/screen', async route => {
+    captures++; inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+    if (fail) await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Device unplugged' }) });
+    else {
+      await new Promise(r => setTimeout(r, 2500));
+      await route.continue();
+    }
+    inFlight--;
+  });
+  await page.locator('#autoRefresh').check();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#inspectMode')?.disabled);
+  await page.locator('#tree button').filter({ hasText: 'home_my_products_button' }).click();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyLocator')?.disabled);
+  assert.match(await page.locator('#liveScreenStatus').innerText(), /Paused for inspection/);
+  const pinned = captures;
+  await page.waitForTimeout(2200);
+  assert.equal(captures, pinned, 'auto-refresh preserves a selected element for copying');
+  await page.locator('#resumeLive').click();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#inspectMode')?.disabled);
+  assert.ok(captures > pinned);
+  assert.equal(maxInFlight, 1, 'slow captures never overlap');
+  await page.locator('#text').focus();
+  const editing = captures;
+  await page.waitForTimeout(2200);
+  assert.equal(captures, editing);
+  await page.locator('#tutorialTab').click();
+  const hidden = captures;
+  await page.waitForTimeout(2200);
+  assert.equal(captures, hidden, 'reading the tutorial does not drive captures');
+  await page.locator('#inspectorTab').click();
+  await page.locator('#autoRefresh').uncheck();
+  fail = true;
+  await page.locator('#autoRefresh').check();
+  await page.waitForFunction(() => !document.querySelector<HTMLInputElement>('#autoRefresh')?.checked);
+  await noticeHas(page, 'Device unplugged');
+  const stopped = captures;
+  await page.waitForTimeout(2200);
+  assert.equal(captures, stopped, 'a failed capture stops automatic requests');
+  assert.equal(await page.locator('#copyLocator').isDisabled(), true);
   assert.deepEqual(errors, []);
 });

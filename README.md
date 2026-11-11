@@ -9,14 +9,18 @@ A separate Appium-only edition of Vortex for Android. Inspect a phone, record ac
 Open **Tutorial · Start here** at the top of the app for a beginner walkthrough: connect your phone, inspect controls, copy locators, create a file, record actions and assertions, save and replay. Each section has a button that shows the relevant control without performing phone actions.
 
 - **Inspect element** above the phone image turns Quick record off. Click a control in the screenshot or tree to select it without tapping the phone.
+- **Simple inspect** keeps a selector and Python preview visible above the full locator list. Choose **Use text**, **Use ID / label** or **Use point**. Hovering over the phone image previews a candidate instantly from the captured hierarchy; it sends no device commands. Native text and ID remain usable inside a WebView when Android exposes them, even without DOM debugging.
+- **Auto-refresh screen** follows phone changes every 2 or 5 seconds. It pauses while a selection is pinned, an input is being edited, a dialog is open, or the Inspector is hidden. **Resume live** clears the pinned selection and resumes captures. A failed capture stops automatic requests. Captures and actions never overlap.
 - **Copy locator**, **Copy Python** and **Copy element** appear under the selected control. They copy the chosen locator value, a Python lookup, or element details as JSON. Copy buttons clear when the screen or context changes. **Copy file code** copies the displayed generated file.
 - **New file** in the Recording heading creates a saved Plain/POM starter using a test name and module. Existing names are refused. If you have current steps, save them first or explicitly acknowledge discarding them. Record actions, then **Save test** updates the starter. Empty starters cannot replay in Vortex and are skipped when run directly with pytest.
 
+The simple inspector follows the text/ID/point approach used by [Maestro selectors](https://docs.maestro.dev/reference/selectors/core-selectors), implemented through Vortex's existing Appium session and Python generator. Coordinates are explicit screen-pixel taps, not semantic element assertions; they depend on layout and scroll position. DOM/CSS selectors still require an exposed WebView context.
+
 ## Validation status
 
-The current source passes its automated suite (95 tests): unit tests, the real HTTP API with real processes, generated tests executed by real pytest, and the UI in a browser.
+The current source passes its automated suite (99 tests): unit tests, the real HTTP API with real processes, generated tests executed by real pytest, and the UI in a browser.
 
-The full 95-test suite and typecheck pass on Windows. Those automated tests use a simulated phone and a stand-in for Appium. A separate physical-device smoke test uses a Moto G32 running Android 13, StockPilot B2B (`com.stockpilot.b2b`), Appium 3.9.0 and UiAutomator2 7.6.2. See [validation results and scope](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
+The full 99-test suite and typecheck pass on Windows. Those automated tests use a simulated phone and a stand-in for Appium. Separate physical-device checks use a Moto G32 running Android 13, StockPilot B2B and IndiaMART, Appium 3.9.0 and UiAutomator2 7.6.2. See [validation results and scope](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
 
 ## New in 1.0.0
 

@@ -4,6 +4,7 @@
 
 import { allCandidates } from './anchor-locators.ts';
 import { randomUUID } from 'node:crypto';
+import { pngDimensions } from '../../visual/png.ts';
 import type { ServerManager } from '../../appium/server-manager.ts';
 import type { DeviceLeases } from '../../devices/device-lease.ts';
 import { candidatesFor, recommend, verifyCandidates } from './native-locators.ts';
@@ -114,13 +115,15 @@ export class AppiumInspector {
         o.session.contexts().catch(() => null),
       ]);
       const ps = parsePageSource(xml);
+      // Appium's window rectangle can exclude system bars, while bounds and screenshots use full-screen pixels.
+      const imageSize = pngDimensions(png);
       o.last = ps;
       o.lastXml = xml;
       o.web.nativeWebViews = ps.nodes.filter(n => n.className === 'android.webkit.WebView' && n.bounds).map(n => ({index:n.index,resourceId:n.resourceId,bounds:n.bounds!}));
       return {
         img: 'data:image/png;base64,' + png.toString('base64'),
-        width: ps.width ?? win?.width ?? null,
-        height: ps.height ?? win?.height ?? null,
+        width: imageSize?.width ?? ps.width ?? win?.width ?? null,
+        height: imageSize?.height ?? ps.height ?? win?.height ?? null,
         contexts,
         nodes: ps.nodes.map((n) => ({ index: n.index, parent: n.parent, depth: n.depth, className: n.className, resourceId: n.resourceId, text: n.text, contentDesc: n.contentDesc, packageName: n.packageName, bounds: n.bounds, flags: n.flags, path: n.path })),
       };

@@ -38,6 +38,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-
 #newFileForm { display: grid; gap: 16px; min-width: min(430px, 75vw); }
 #newFileForm p { margin: 0; line-height: 1.6; }
 .form-error { color: #ffc1c7; }
+.live-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.live-controls select, .live-controls button { font-size: 12px; padding: 6px 8px; }
+.hover-locator { padding: 10px; background: #0d2029; border: 1px solid #28545d; border-radius: 8px; line-height: 1.5; font: 12px ui-monospace, monospace; overflow-wrap: anywhere; }
+#hoverHighlight { position: absolute; pointer-events: none; border: 2px dashed var(--green); background: #4dd8a51a; display: none; }
+.simple-inspector { margin: 12px 0; padding: 14px; border: 1px solid #467c71; border-radius: 10px; background: #102822; }
+.simple-inspector .panel-heading { flex-wrap: wrap; margin-bottom: 10px; }
+.simple-inspector code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; font-size: 12px; }
+.simple-inspector #bestLocatorValue { color: #abedda; font-weight: 600; max-height: 100px; overflow: auto; }
+.simple-inspector #bestLocatorPython { padding-top: 10px; border-top: 1px solid #285448; }
+#webStatus.fallback { padding: 10px; border-left: 3px solid var(--green); background: #132c2a; color: #c5f4e3; }
 @media (max-width: 850px) { .tutorial-grid { grid-template-columns: 1fr; } }
 body {
   margin: 0;

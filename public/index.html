@@ -51,6 +51,12 @@
         </div>
         <button id="inspectMode" class="primary" aria-pressed="true" title="Select elements and copy locators without tapping the phone">Inspect element</button>
         <p id="inspectHint" class="muted">Inspect mode: click an element on the phone image or in the tree. Its locators appear in the middle panel.</p>
+        <div class="live-controls">
+          <label class="inline"><input id="autoRefresh" type="checkbox" />Auto-refresh screen</label>
+          <select id="refreshInterval" aria-label="Screen refresh interval"><option value="2000">Every 2 seconds</option><option value="5000">Every 5 seconds</option></select>
+          <button id="resumeLive" hidden>Resume live</button>
+        </div>
+        <p id="liveScreenStatus" class="muted" role="status">Manual refresh. Enable auto-refresh to follow changes made on the phone.</p>
         <label class="inline"><input id="record" type="checkbox" checked /> Record successful actions</label>
         <label class="inline" title="Click a control on the screenshot to tap it on the phone and record the step in one go">
           <input id="quick" type="checkbox" /> Quick record: a click taps and records
@@ -59,7 +65,9 @@
           <img id="screenshot" alt="Attach to display your phone" />
           <div id="matches"></div>
           <div id="highlight"></div>
+          <div id="hoverHighlight"></div>
         </div>
+        <p id="hoverLocator" class="hover-locator">Move over the phone image for an instant locator preview. Click to select and copy.</p>
         <p id="point" class="muted">Click the screenshot to inspect a control. Selecting never taps the phone.</p>
         <div class="toolbar">
           <button data-swipe="up">Swipe ↑</button>
@@ -97,6 +105,17 @@
         <input id="search" type="search" placeholder="Filter the list by text, ID, label or class" aria-label="Search controls" />
         <div id="tree" class="scroll"></div>
         <div id="selected"><strong>No control selected</strong></div>
+        <section class="simple-inspector" aria-label="Simple element inspector">
+          <div class="panel-heading"><strong id="bestLocatorKind">Simple inspect</strong><span class="muted">Text · ID / label · Point</span></div>
+          <code id="bestLocatorValue">Select an element on the phone image or in the tree.</code>
+          <div class="toolbar">
+            <button id="simpleText" disabled>Use text</button>
+            <button id="simpleId" disabled>Use ID / label</button>
+            <button id="simplePoint" disabled>Use point</button>
+          </div>
+          <p id="bestLocatorNote" class="muted">Text and ID work when Android exposes them, including inside many WebViews. Point taps work at the selected screen position.</p>
+          <code id="bestLocatorPython"></code>
+        </section>
         <div class="toolbar copy-tools" aria-label="Copy selected element">
           <button id="copyLocator" disabled title="Copy only the locator value, ready to paste">Copy locator</button>
           <button id="copyPython" disabled title="Copy driver.find_element(...) for this locator">Copy Python</button>
@@ -219,7 +238,9 @@
           <button data-guide-target="setup">Find Server &amp; setup</button>
         </article>
         <article class="panel"><h2>2. Inspect and copy an element</h2>
-          <ol><li>Click <strong>Inspect element</strong> above the phone image.</li><li>Click a control on the phone image or its row in the middle tree. Inspect mode selects it without tapping the phone.</li><li>Read its details and locators in <strong>Inspect controls</strong>. A locator is an address used to find that control again.</li><li>Click a locator row to choose it. <strong>Copy locator</strong> copies its value; <strong>Copy Python</strong> copies the lookup code; <strong>Copy element</strong> copies its details as JSON.</li></ol>
+          <ol><li>Click <strong>Inspect element</strong> above the phone image. Moving over the image previews locators instantly from the captured screen.</li><li>Click a control on the phone image or its row in the middle tree. Inspect mode selects it without tapping the phone.</li><li>Use the <strong>Simple inspect</strong> card to choose <strong>Use text</strong>, <strong>Use ID / label</strong> or <strong>Use point</strong>. The selector and Python code appear immediately.</li><li><strong>Copy locator</strong> copies the selector value; <strong>Copy Python</strong> copies the lookup or point-tap code; <strong>Copy element</strong> copies element details as JSON.</li></ol>
+          <p class="muted">Enable <strong>Auto-refresh screen</strong> to follow navigation on the phone. It pauses while a selection is pinned or you edit a field; click <strong>Resume live</strong> to clear the selection and continue. Viewing Tutorial or putting the browser tab in the background pauses live captures.</p>
+          <p class="muted">A WebView can expose native text even when its DOM is unavailable. Use text or ID when exposed, or choose a point and click Tap. Points are screen coordinates, depend on layout and scroll position, and do not identify an element for assertions. DOM/CSS selectors require an exposed WebView context.</p>
           <p class="muted">Prefer a unique ID or accessibility label. “Unique on this screen” uses the captured hierarchy. “Verified on phone” means a live lookup confirmed it. Use Verify all on phone to check every candidate.</p>
           <button data-guide-target="inspectMode">Find Inspect element</button>
         </article>

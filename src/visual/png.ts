@@ -15,6 +15,13 @@ const SIG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export class PngError extends Error {}
 
+/** Reads the pixel coordinate space without decoding/inflating the screenshot. */
+export function pngDimensions(buf: Buffer): { width: number; height: number } | null {
+  if (buf.length < 24 || !buf.subarray(0, 8).equals(SIG) || buf.readUInt32BE(8) !== 13 || buf.toString('ascii', 12, 16) !== 'IHDR') return null;
+  const width = buf.readUInt32BE(16), height = buf.readUInt32BE(20);
+  return width > 0 && height > 0 && width <= 0x7fffffff && height <= 0x7fffffff ? { width, height } : null;
+}
+
 export function decodePng(buf: Buffer): Image {
   if (buf.length < 8 || !buf.subarray(0, 8).equals(SIG)) throw new PngError('not a PNG file');
   let off = 8;

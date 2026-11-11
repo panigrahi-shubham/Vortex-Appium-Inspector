@@ -12,13 +12,16 @@ let screen = null, // last captured screen (with its one-use token)
   chosen = null, // native locator the tester picked for the next action: { strategy, value }
   locatorToCopy = null,
   defaultLocatorToCopy = null,
+  currentCandidates = [],
   steps = [],
   generated = [],
   activeRun = null,
   busy = false,
   savedRef = null,
   searchHits = null, // Set of control indexes matching the locator search, or null when the box is empty
-  searchSeq = 0;
+  searchSeq = 0,
+  autoRefreshTimer = null,
+  lastCaptureAt = null;
 
 function notice(text, error = false) {
   $("notice").textContent = text;
@@ -62,6 +65,7 @@ async function task(fn) {
     busy = false;
     document.querySelectorAll("button").forEach((b) => (b.disabled = false));
     updateCopyButtons();
+    updateLiveStatus();
   }
 }
 
@@ -70,10 +74,15 @@ const label = (n) => n.text || n.contentDesc || n.resourceId || n.className;
 const pct = (v, total) => `${((v / total) * 100).toFixed(1)}%`;
 
 function updateCopyButtons() {
-  $("copyLocator").disabled = busy || !screen || !selected || !locatorToCopy;
-  $("copyPython").disabled = busy || !screen || !selected || !locatorToCopy;
+  const canCopy = screen && locatorToCopy && (selected || ($("coordinates").checked && point));
+  $("copyLocator").disabled = busy || !canCopy;
+  $("copyPython").disabled = busy || !canCopy;
   $("copyElement").disabled = busy || !screen || !selected;
   $("copyCode").disabled = busy || !generated.some((f) => f.path === $("files").value);
+  $("simpleText").disabled = busy || !screen || !isNative() || !selected?.text;
+  $("simpleId").disabled = busy || !screen || !isNative() || !(selected?.resourceId || selected?.contentDesc);
+  $("simplePoint").disabled = busy || !screen || !point;
+  renderSimpleInspector();
 }
 
 async function copyText(text, message) {
@@ -98,14 +107,90 @@ async function copyText(text, message) {
 }
 
 const pythonLookup = (locator) => {
+  if (locator.using === "coordinates") {
+    const [x, y] = locator.value.split(",").map(Number);
+    return `driver.execute_script("mobile: clickGesture", {"x": ${x}, "y": ${y}})`;
+  }
   const by = { id: "ID", "accessibility id": "ACCESSIBILITY_ID", xpath: "XPATH", "-android uiautomator": "ANDROID_UIAUTOMATOR", "class name": "CLASS_NAME", "css selector": "CSS_SELECTOR" }[locator.using];
   if (!by) throw Error("This locator cannot be copied as a Python lookup.");
   return `driver.find_element(AppiumBy.${by}, ${JSON.stringify(locator.value)})`;
 };
 $("copyLocator").onclick = () => task(() => copyText(locatorToCopy?.value, "Locator copied to clipboard."));
-$("copyPython").onclick = () => task(() => copyText(pythonLookup(locatorToCopy), "Python lookup copied. Import AppiumBy from appium.webdriver.common.appiumby."));
+$("copyPython").onclick = () => task(() => copyText(pythonLookup(locatorToCopy), locatorToCopy.using === "coordinates" ? "Point-tap Python copied to clipboard." : "Python lookup copied. Import AppiumBy from appium.webdriver.common.appiumby."));
 $("copyElement").onclick = () => task(() => copyText(JSON.stringify({ context: $("context").value, element: selected, locator: locatorToCopy }, null, 2), "Element details copied as JSON."));
 $("copyCode").onclick = () => task(() => copyText(generated.find((f) => f.path === $("files").value)?.content, "File code copied to clipboard."));
+
+// Immediate suggestions use only the captured hierarchy; they never claim live verification.
+function xpathString(value) {
+  if (!value.includes("'")) return `'${value}'`;
+  if (!value.includes('"')) return `"${value}"`;
+  return "concat(" + value.split("'").map((part) => `'${part}'`).join(`, "'", `) + ")";
+}
+function lookupForField(node, field) {
+  const value = node[field];
+  const attr = { resourceId: "resource-id", contentDesc: "content-desc", text: "text" }[field];
+  const matches = screen.nodes.filter((n) => n[field] === value);
+  if (matches.length > 1) return { using: "xpath", value: `(//*[@${attr}=${xpathString(value)}])[${matches.findIndex((n) => n.index === node.index) + 1}]` };
+  return field === "text" ? { using: "-android uiautomator", value: `new UiSelector().text(${JSON.stringify(value)})` }
+    : { using: field === "resourceId" ? "id" : "accessibility id", value };
+}
+function quickLocator(node) {
+  if (!isNative()) return null;
+  const field = node.resourceId ? "resourceId" : node.contentDesc ? "contentDesc" : node.text && !/EditText$/.test(node.className) ? "text" : null;
+  return field ? lookupForField(node, field) : { using: "xpath", value: node.path };
+}
+function renderSimpleInspector() {
+  const locator = screen && (selected || ($("coordinates").checked && point)) ? locatorToCopy : null;
+  $("bestLocatorKind").textContent = locator ? ({ id: "ID", "accessibility id": "Label", "-android uiautomator": "Text / UiSelector", xpath: "XPath", "css selector": "CSS", coordinates: "Point" }[locator.using] || "Selected locator") : "Simple inspect";
+  $("bestLocatorValue").textContent = locator?.value || "Select an element on the phone image or in the tree.";
+  $("bestLocatorPython").textContent = locator ? pythonLookup(locator) : "";
+  $("bestLocatorNote").textContent = locator?.using === "coordinates"
+    ? `Point tap at ${pct(point.x, screen.width)}, ${pct(point.y, screen.height)} of the screen. Click Tap to execute. This position depends on layout and scroll; it is not an element assertion.`
+    : "Suggested from the captured hierarchy. Live verification appears in the full locator list below. Text and ID can work in WebViews even when DOM access is unavailable.";
+}
+function usePoint() {
+  if (!screen || !point) return;
+  $("coordinates").checked = true;
+  chosen = null;
+  locatorToCopy = { using: "coordinates", value: `${point.x},${point.y}` };
+  $("selector").value = `point: ${locatorToCopy.value}`;
+  updateCopyButtons();
+  showPoint();
+}
+$("simplePoint").onclick = () => {
+  usePoint();
+  notice("Point selected. Copy Python for the tap code, or click Tap to execute and record it.");
+};
+for (const [id, kind] of [["simpleText", "text"], ["simpleId", "id"]]) $(id).onclick = () => {
+  if (busy || !screen || !selected || !isNative()) return;
+  const strategy = kind === "text" ? "uiautomator text" : selected.resourceId ? "id" : "accessibility id";
+  const candidate = currentCandidates.find((c) => c.strategy === strategy);
+  if (!candidate) return notice(`This control does not expose a usable ${kind} selector.`, true);
+  $("coordinates").checked = false;
+  chosen = { strategy: candidate.strategy, value: candidate.value };
+  locatorToCopy = lookupForField(selected, kind === "text" ? "text" : selected.resourceId ? "resourceId" : "contentDesc");
+  $("selector").value = `${locatorToCopy.using}: ${locatorToCopy.value}`;
+  for (const b of $("locators").children) b.classList.toggle("active", b.dataset.strategy === candidate.strategy && b.dataset.value === candidate.value);
+  updateCopyButtons();
+  notice(`${kind === "text" ? "Text" : "ID / label"} selected. Copy it, or choose an action to record.`);
+};
+$("coordinates").onchange = () => {
+  if ($("coordinates").checked) {
+    if (point) usePoint();
+    else {
+      locatorToCopy = null;
+      $("selector").value = "";
+      updateCopyButtons();
+      notice("Click a position on the phone image to choose a point tap.");
+    }
+  }
+  else {
+    chosen = null;
+    locatorToCopy = defaultLocatorToCopy;
+    $("selector").value = locatorToCopy ? `${locatorToCopy.using}: ${locatorToCopy.value}` : "";
+    updateCopyButtons();
+  }
+};
 
 // ---- screen and tree -------------------------------------------------------------------------
 
@@ -158,6 +243,8 @@ function drawMatches(indexes) {
 
 function clearOverlays() {
   $("highlight").style.display = "none";
+  $("hoverHighlight").style.display = "none";
+  $("hoverLocator").textContent = "Move over the phone image for an instant locator preview. Click to select and copy.";
   $("matches").replaceChildren();
 }
 
@@ -168,6 +255,7 @@ function renderScreen(fresh) {
   chosen = null;
   locatorToCopy = null;
   defaultLocatorToCopy = null;
+  currentCandidates = [];
   $("copyStatus").textContent = "Select an element to enable copying. Click a locator below to choose what to copy.";
   updateCopyButtons();
   searchHits = null;
@@ -175,10 +263,14 @@ function renderScreen(fresh) {
   $("selector").value = "";
   $("locators").replaceChildren();
   clearOverlays();
-  if (!fresh) return;
+  if (!fresh) {
+    updateLiveStatus();
+    return;
+  }
   $("screenshot").src = fresh.img;
   $("dimensions").textContent = `${fresh.width} × ${fresh.height}`;
   $("webStatus").textContent = fresh.webMessage;
+  $("webStatus").classList.toggle("fallback", !!fresh.webMessage?.includes("DOM is not exposed") || !!fresh.webMessage?.includes("DOM unavailable"));
   const previous = $("context").value;
   $("context").replaceChildren(new Option("Native controls", "NATIVE_APP"));
   if (fresh.web) $("context").add(new Option(`DOM · ${fresh.web.context}`, fresh.web.context));
@@ -187,6 +279,8 @@ function renderScreen(fresh) {
   renderTree();
   // The screen changed: re-evaluate whatever is in the locator search box against the new capture.
   if ($("locatorSearch").value.trim()) runSearch();
+  lastCaptureAt = new Date();
+  updateLiveStatus();
 }
 
 function renderTree() {
@@ -225,6 +319,7 @@ async function choose(n) {
   chosen = null;
   locatorToCopy = null;
   defaultLocatorToCopy = null;
+  currentCandidates = [];
   const r = n.bounds;
   if (r) {
     point = { x: Math.round(r.x + r.w / 2), y: Math.round(r.y + r.h / 2) };
@@ -233,14 +328,20 @@ async function choose(n) {
   renderTree();
   $("selected").textContent = `${label(n)}\n${n.className}\n${r ? `Bounds ${r.x}, ${r.y} · ${r.w} × ${r.h}` : ""}`;
   $("secret").checked = !!n.flags?.password;
+  locatorToCopy = quickLocator(n);
+  $("locators").replaceChildren();
+  updateCopyButtons();
   const token = screen.token;
+  const context = $("context").value;
   const result = await api("inspect", { token, index: n.index, context: isNative() ? "NATIVE_APP" : "WEBVIEW" });
+  if (screen?.token !== token || selected?.index !== n.index || $("context").value !== context) return;
   renderLocators(result.candidates, result.recommended);
   if (result.target) {
     $("selector").value = `${result.target.using}: ${result.target.value}`;
     locatorToCopy = { using: result.target.using, value: result.target.value };
     defaultLocatorToCopy = locatorToCopy;
   }
+  if ($("coordinates").checked) usePoint();
   $("copyStatus").textContent = "Element inspected. Copy its locator, Python lookup, or details using the buttons above.";
   updateCopyButtons();
   showPoint();
@@ -290,6 +391,7 @@ function stateText(c) {
 }
 
 function renderLocators(candidates, recommended) {
+  currentCandidates = candidates;
   $("locators").replaceChildren();
   const native = isNative();
   for (const c of candidates) {
@@ -309,6 +411,7 @@ function renderLocators(candidates, recommended) {
     b.title = [...(c.scoreNotes || []), ...(c.weaknesses || []).map((w) => "⚠ " + w)].join("\n");
     b.onclick = () => {
       if (!native) {
+        $("coordinates").checked = false;
         $("selector").value = c.value;
         $("using").value = c.using;
         locatorToCopy = { using: c.using, value: c.value };
@@ -316,9 +419,11 @@ function renderLocators(candidates, recommended) {
         return;
       }
       if (!c.using) {
-        notice("Coordinates are not an element lookup. Tick Coordinate tap to tap this point instead.");
+        usePoint();
+        notice("Point tap selected. Copy Python for its tap code, or click Tap to execute.");
         return;
       }
+      $("coordinates").checked = false;
       const same = chosen && chosen.strategy === c.strategy && chosen.value === c.value;
       chosen = same ? null : { strategy: c.strategy, value: c.value };
       locatorToCopy = same ? defaultLocatorToCopy : { using: c.using, value: c.value };
@@ -334,6 +439,7 @@ function renderLocators(candidates, recommended) {
     $("using").value = candidates[0].using;
     locatorToCopy = { using: candidates[0].using, value: candidates[0].value };
   }
+  $("locators").scrollTop = 0;
 }
 
 // ---- locator search --------------------------------------------------------------------------
@@ -428,14 +534,32 @@ function hitAt(p) {
     .sort((a, b) => a.bounds.w * a.bounds.h - b.bounds.w * b.bounds.h)[0];
 }
 
+function imagePoint(event) {
+  const rect = $("screenshot").getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(screen.width - 1, Math.floor((event.clientX - rect.left) / rect.width * screen.width))),
+    y: Math.max(0, Math.min(screen.height - 1, Math.floor((event.clientY - rect.top) / rect.height * screen.height))),
+  };
+}
+$("screenshot").onmousemove = (event) => {
+  if (!screen || busy || $("quick").checked) return;
+  const p = imagePoint(event);
+  const hit = hitAt(p);
+  const preview = hit ? quickLocator(hit) : null;
+  $("hoverLocator").textContent = preview ? `${preview.using}: ${preview.value} · Click to select`
+    : hit ? `${label(hit)} · Click for DOM locators` : `Point: ${p.x},${p.y} · Click, then Use point`;
+  const box = $("hoverHighlight");
+  if (hit?.bounds) Object.assign(box.style, { display: "block", ...boxStyle(hit.bounds) });
+  else box.style.display = "none";
+};
+$("screenshot").onmouseleave = () => {
+  $("hoverHighlight").style.display = "none";
+};
+
 $("screenshot").onclick = (e) =>
   task(async () => {
     if (!screen) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const clicked = {
-      x: Math.floor(((e.clientX - r.left) / r.width) * screen.width),
-      y: Math.floor(((e.clientY - r.top) / r.height) * screen.height),
-    };
+    const clicked = imagePoint(e);
     point = clicked;
     const hit = hitAt(clicked);
 
@@ -464,9 +588,17 @@ $("screenshot").onclick = (e) =>
     if (hit) await choose(hit);
     else {
       selected = null;
+      chosen = null;
+      locatorToCopy = null;
+      defaultLocatorToCopy = null;
+      currentCandidates = [];
+      $("locators").replaceChildren();
+      $("selector").value = "";
       $("selected").textContent = "No accessible control at this point. Explicit coordinate tap is available.";
     }
     point = clicked;
+    if ($("coordinates").checked) usePoint();
+    updateCopyButtons();
     showPoint();
   });
 
@@ -936,9 +1068,11 @@ const refresh = async () => {
 $("refresh").onclick = () => task(refresh);
 $("context").onchange = () => {
   selected = null;
+  point = null;
   chosen = null;
   locatorToCopy = null;
   defaultLocatorToCopy = null;
+  currentCandidates = [];
   $("selected").textContent = "No control selected";
   updateCopyButtons();
   clearOverlays();
@@ -967,6 +1101,8 @@ $("quick").onchange = () => {
     : "Click the screenshot to inspect a control. Selecting never taps the phone.";
 };
 $("inspectMode").onclick = () => {
+  $("coordinates").checked = false;
+  $("coordinates").onchange();
   $("quick").checked = false;
   $("quick").onchange();
   notice("Inspect mode is on. Click an element on the phone image or in the tree, then use Copy locator, Copy Python or Copy element.");
@@ -977,6 +1113,60 @@ $("selector").oninput = () => {
 };
 $("using").onchange = $("selector").oninput;
 
+// Live captures share the same exclusive task queue as actions. A pinned selection stays stable for copying.
+function livePauseReason() {
+  if (!screen || activeRun) return "Waiting for an attached Inspector screen";
+  if (document.hidden || $("inspectorView").hidden) return "Paused while the Inspector is hidden";
+  if (selected || point) return "Paused for inspection";
+  const focused = document.activeElement;
+  if (focused?.closest("#inspectorView") && focused.matches('input:not([type="checkbox"]), textarea, select')) return "Paused while editing";
+  if (document.querySelector("dialog[open]")) return "Paused while a dialog is open";
+  return "";
+}
+function updateLiveStatus() {
+  const enabled = $("autoRefresh").checked;
+  const reason = enabled ? livePauseReason() : "";
+  $("liveScreenStatus").textContent = !enabled ? "Manual refresh. Enable auto-refresh to follow changes made on the phone."
+    : reason ? `${reason}. ${reason.includes("inspection") || reason.includes("editing") ? "Choose Resume live to continue." : ""}`
+    : `Live screen · ${lastCaptureAt ? "updated " + lastCaptureAt.toLocaleTimeString() : "waiting for capture"}`;
+  $("resumeLive").hidden = !enabled || !screen || !reason.includes("inspection") && !reason.includes("editing");
+}
+async function captureLiveScreen() {
+  if (!$("autoRefresh").checked || busy) return;
+  if (livePauseReason()) return updateLiveStatus();
+  await task(async () => {
+    $("liveScreenStatus").textContent = "Refreshing the phone screen…";
+    try {
+      renderScreen(await api("screen", { autoWeb: $("autoWeb").checked }));
+    } catch (e) {
+      $("autoRefresh").checked = false;
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+      renderScreen(null);
+      throw e;
+    }
+  });
+}
+function scheduleLiveScreen() {
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer = null;
+  if ($("autoRefresh").checked) {
+    autoRefreshTimer = setInterval(captureLiveScreen, Number($("refreshInterval").value));
+    captureLiveScreen();
+  }
+  updateLiveStatus();
+}
+$("autoRefresh").onchange = scheduleLiveScreen;
+$("refreshInterval").onchange = () => {
+  $("refreshInterval").blur();
+  scheduleLiveScreen();
+};
+$("resumeLive").onclick = () => {
+  $("inspectMode").focus();
+  renderScreen(screen);
+  captureLiveScreen();
+};
+
 // Tutorial navigation never sends device commands, including when following a guide button.
 function showWorkspace(tutorial) {
   $("inspectorView").hidden = tutorial;
@@ -985,6 +1175,7 @@ function showWorkspace(tutorial) {
     $(id).setAttribute("aria-selected", String(active));
     $(id).tabIndex = active ? 0 : -1;
   }
+  updateLiveStatus();
 }
 $("inspectorTab").onclick = () => showWorkspace(false);
 $("tutorialTab").onclick = () => showWorkspace(true);
