@@ -10,6 +10,8 @@ let screen = null, // last captured screen (with its one-use token)
   selected = null, // control picked in the tree or on the screenshot
   point = null, // last clicked screenshot point, in device pixels
   chosen = null, // native locator the tester picked for the next action: { strategy, value }
+  locatorToCopy = null,
+  defaultLocatorToCopy = null,
   steps = [],
   generated = [],
   activeRun = null,
@@ -59,12 +61,51 @@ async function task(fn) {
   } finally {
     busy = false;
     document.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    updateCopyButtons();
   }
 }
 
 const isNative = () => $("context").value === "NATIVE_APP";
 const label = (n) => n.text || n.contentDesc || n.resourceId || n.className;
 const pct = (v, total) => `${((v / total) * 100).toFixed(1)}%`;
+
+function updateCopyButtons() {
+  $("copyLocator").disabled = busy || !screen || !selected || !locatorToCopy;
+  $("copyPython").disabled = busy || !screen || !selected || !locatorToCopy;
+  $("copyElement").disabled = busy || !screen || !selected;
+  $("copyCode").disabled = busy || !generated.some((f) => f.path === $("files").value);
+}
+
+async function copyText(text, message) {
+  if (!text) throw Error("Select an element or generated file first.");
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Some local browser profiles deny Clipboard API access; keep a manual-copy fallback.
+    const previous = document.activeElement;
+    const field = document.createElement("textarea");
+    field.value = text;
+    field.className = "clipboard-fallback";
+    document.body.append(field);
+    field.select();
+    const copied = document.execCommand("copy");
+    field.remove();
+    previous?.focus();
+    if (!copied) throw Error("Clipboard access was blocked. Select the locator or file code and press Ctrl+C.");
+  }
+  $("copyStatus").textContent = message;
+  notice(message);
+}
+
+const pythonLookup = (locator) => {
+  const by = { id: "ID", "accessibility id": "ACCESSIBILITY_ID", xpath: "XPATH", "-android uiautomator": "ANDROID_UIAUTOMATOR", "class name": "CLASS_NAME", "css selector": "CSS_SELECTOR" }[locator.using];
+  if (!by) throw Error("This locator cannot be copied as a Python lookup.");
+  return `driver.find_element(AppiumBy.${by}, ${JSON.stringify(locator.value)})`;
+};
+$("copyLocator").onclick = () => task(() => copyText(locatorToCopy?.value, "Locator copied to clipboard."));
+$("copyPython").onclick = () => task(() => copyText(pythonLookup(locatorToCopy), "Python lookup copied. Import AppiumBy from appium.webdriver.common.appiumby."));
+$("copyElement").onclick = () => task(() => copyText(JSON.stringify({ context: $("context").value, element: selected, locator: locatorToCopy }, null, 2), "Element details copied as JSON."));
+$("copyCode").onclick = () => task(() => copyText(generated.find((f) => f.path === $("files").value)?.content, "File code copied to clipboard."));
 
 // ---- screen and tree -------------------------------------------------------------------------
 
@@ -125,6 +166,10 @@ function renderScreen(fresh) {
   selected = null;
   point = null;
   chosen = null;
+  locatorToCopy = null;
+  defaultLocatorToCopy = null;
+  $("copyStatus").textContent = "Select an element to enable copying. Click a locator below to choose what to copy.";
+  updateCopyButtons();
   searchHits = null;
   $("selected").textContent = "No control selected";
   $("selector").value = "";
@@ -178,6 +223,8 @@ function showPoint() {
 async function choose(n) {
   selected = n;
   chosen = null;
+  locatorToCopy = null;
+  defaultLocatorToCopy = null;
   const r = n.bounds;
   if (r) {
     point = { x: Math.round(r.x + r.w / 2), y: Math.round(r.y + r.h / 2) };
@@ -189,7 +236,13 @@ async function choose(n) {
   const token = screen.token;
   const result = await api("inspect", { token, index: n.index, context: isNative() ? "NATIVE_APP" : "WEBVIEW" });
   renderLocators(result.candidates, result.recommended);
-  if (result.target) $("selector").value = `${result.target.using}: ${result.target.value}`;
+  if (result.target) {
+    $("selector").value = `${result.target.using}: ${result.target.value}`;
+    locatorToCopy = { using: result.target.using, value: result.target.value };
+    defaultLocatorToCopy = locatorToCopy;
+  }
+  $("copyStatus").textContent = "Element inspected. Copy its locator, Python lookup, or details using the buttons above.";
+  updateCopyButtons();
   showPoint();
   if (isNative() && result.recommended) confirmOnPhone(token, n.index, result.recommended);
 }
@@ -258,6 +311,8 @@ function renderLocators(candidates, recommended) {
       if (!native) {
         $("selector").value = c.value;
         $("using").value = c.using;
+        locatorToCopy = { using: c.using, value: c.value };
+        updateCopyButtons();
         return;
       }
       if (!c.using) {
@@ -266,6 +321,8 @@ function renderLocators(candidates, recommended) {
       }
       const same = chosen && chosen.strategy === c.strategy && chosen.value === c.value;
       chosen = same ? null : { strategy: c.strategy, value: c.value };
+      locatorToCopy = same ? defaultLocatorToCopy : { using: c.using, value: c.value };
+      updateCopyButtons();
       for (const other of $("locators").children) other.classList.toggle("active", !same && other === b);
       $("selector").value = same ? "" : `${c.strategy}: ${c.value}`;
       notice(same ? "Back to the default locator for this control." : "The next action and the generated test will use this locator.");
@@ -275,6 +332,7 @@ function renderLocators(candidates, recommended) {
   if (!native && candidates.length) {
     $("selector").value = candidates[0].value;
     $("using").value = candidates[0].using;
+    locatorToCopy = { using: candidates[0].using, value: candidates[0].value };
   }
 }
 
@@ -348,6 +406,7 @@ async function act(type, args = {}, extra = {}) {
   renderScreen(data.screen);
   renderSteps();
   savedRef = null;
+  renderGenerated([]);
   notice(
     `Completed ${type.replaceAll("_", " ")} in ${(data.durationMs / 1000).toFixed(1)} s. ${$("record").checked ? "Step recorded." : "Recording paused."}`,
   );
@@ -503,6 +562,8 @@ $("reset").onclick = () =>
     steps = (await api("recording/clear", {})).steps;
     renderSteps();
     savedRef = null;
+    $("saved").value = "";
+    renderGenerated([]);
     notice("Recording cleared.");
   });
 
@@ -519,8 +580,55 @@ function renderGenerated(files) {
   renderCode();
 }
 function renderCode() {
-  $("code").textContent = generated.find((f) => f.path === $("files").value)?.content || "No generated files.";
+  $("code").textContent = generated.find((f) => f.path === $("files").value)?.content || "Create a new file, or record steps and click Preview to see your Python test.";
+  updateCopyButtons();
 }
+
+$("newFile").onclick = () => {
+  if (activeRun) return notice("Wait for the running test to finish before creating a file.", true);
+  $("newFileName").value = "";
+  $("newFileModule").value = $("module").value || "general";
+  $("newFileMode").value = $("mode").value;
+  $("newFileExisting").hidden = !steps.length;
+  $("discardForNew").checked = false;
+  $("newFileError").textContent = "";
+  $("newFileDialog").showModal();
+  $("newFileName").focus();
+};
+$("newFileClose").onclick = () => $("newFileDialog").close();
+$("newFileForm").onsubmit = (event) => {
+  event.preventDefault();
+  if (steps.length && !$("discardForNew").checked) {
+    $("newFileError").textContent = "Save your current recording first, or tick the checkbox to discard its steps.";
+    return;
+  }
+  task(async () => {
+    try {
+      const r = await api("new", { name: $("newFileName").value, module: $("newFileModule").value, mode: $("newFileMode").value, pkg: $("pkg").value });
+      steps = r.steps;
+      $("name").value = r.name;
+      $("module").value = r.module;
+      $("mode").value = r.mode;
+      $("sharedPages").checked = false;
+      $("pageName").value = "";
+      $("record").checked = true;
+      $("quick").checked = false;
+      $("quick").onchange();
+      $("output").textContent = "New starter file. Record steps and Save test before replaying.";
+      $("repair").replaceChildren();
+      $("repair").hidden = true;
+      await status();
+      savedRef = r.ref;
+      $("saved").value = JSON.stringify(r.ref);
+      renderGenerated(allFiles(r));
+      $("newFileDialog").close();
+      notice(`Created ${r.ref.module}/${r.ref.case}. Record actions, then Save test to update this starter.`);
+    } catch (e) {
+      $("newFileError").textContent = e.message;
+      throw e;
+    }
+  });
+};
 function renderSaved(project) {
   const old = $("saved").value;
   $("saved").replaceChildren(new Option("Choose a saved test", ""));
@@ -829,6 +937,10 @@ $("refresh").onclick = () => task(refresh);
 $("context").onchange = () => {
   selected = null;
   chosen = null;
+  locatorToCopy = null;
+  defaultLocatorToCopy = null;
+  $("selected").textContent = "No control selected";
+  updateCopyButtons();
   clearOverlays();
   $("selector").value = "";
   $("locators").replaceChildren();
@@ -844,11 +956,54 @@ $("locatorSearch").onkeydown = (e) => {
   if (first) task(() => choose(first));
 };
 $("quick").onchange = () => {
+  $("inspectMode").setAttribute("aria-pressed", String(!$("quick").checked));
+  $("inspectMode").classList.toggle("primary", !$("quick").checked);
+  $("inspectHint").textContent = $("quick").checked
+    ? "Quick record: clicking the screenshot performs an action. Click Inspect element to return to selecting and copying."
+    : "Inspect mode: click an element on the phone image or in the tree. Its locators appear in the middle panel.";
   $("phone").classList.toggle("quick", $("quick").checked);
   $("point").textContent = $("quick").checked
     ? "Quick record is on: a click taps the control on the phone and records the step. Click a text field, type, press Enter."
     : "Click the screenshot to inspect a control. Selecting never taps the phone.";
 };
+$("inspectMode").onclick = () => {
+  $("quick").checked = false;
+  $("quick").onchange();
+  notice("Inspect mode is on. Click an element on the phone image or in the tree, then use Copy locator, Copy Python or Copy element.");
+};
+$("selector").oninput = () => {
+  if (!isNative()) locatorToCopy = $("selector").value ? { using: $("using").value, value: $("selector").value } : null;
+  updateCopyButtons();
+};
+$("using").onchange = $("selector").oninput;
+
+// Tutorial navigation never sends device commands, including when following a guide button.
+function showWorkspace(tutorial) {
+  $("inspectorView").hidden = tutorial;
+  $("tutorialView").hidden = !tutorial;
+  for (const [id, active] of [["inspectorTab", !tutorial], ["tutorialTab", tutorial]]) {
+    $(id).setAttribute("aria-selected", String(active));
+    $(id).tabIndex = active ? 0 : -1;
+  }
+}
+$("inspectorTab").onclick = () => showWorkspace(false);
+$("tutorialTab").onclick = () => showWorkspace(true);
+document.querySelectorAll('[role="tab"]').forEach((tab) => tab.addEventListener("keydown", (e) => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const tutorial = e.key === "End" || (e.key !== "Home" && tab.id !== "tutorialTab");
+  showWorkspace(tutorial);
+  $(tutorial ? "tutorialTab" : "inspectorTab").focus();
+}));
+document.querySelectorAll("[data-guide-target]").forEach((button) => {
+  button.onclick = () => {
+    showWorkspace(false);
+    const target = $(button.dataset.guideTarget);
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.focus({ preventScroll: true });
+  };
+});
 
 // ---- repair a failed step --------------------------------------------------------------------
 
@@ -966,6 +1121,7 @@ try {
 $("shortcuts").onclick = () => $("shortcutsDialog").showModal();
 $("shortcutsClose").onclick = () => $("shortcutsDialog").close();
 document.addEventListener("keydown", (e) => {
+  if ($("inspectorView").hidden) return;
   if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]")) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
   const run = {

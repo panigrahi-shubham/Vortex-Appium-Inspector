@@ -10,6 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -201,4 +202,40 @@ test('ranking notes show stability once the same screen was captured again', asy
   const again = await app.inspect({ token: app.snapshot!.token, index: byId(app, 'home_search_input') });
   const id = again.candidates!.find((c) => c.strategy === 'id')!;
   assert.ok('scoreNotes' in id && id.scoreNotes.some((n) => n.startsWith('+5 unchanged in 1 earlier capture')), JSON.stringify(id));
+});
+
+test('new file creates a real starter, refuses duplicates without losing steps, and can be filled by recording', async (t) => {
+  const { app, out } = await setup(t);
+  const body = { name: 'new catalog', module: 'shop', mode: 'plain', pkg: 'com.yourname.tradehub' };
+  const created = app.project.create(body);
+  const entry = path.join(out, 'shop', 'new-catalog', created.files.find((f) => f.role === 'entry')!.path);
+  assert.ok(fs.existsSync(entry));
+  assert.match(fs.readFileSync(entry, 'utf8'), /pytest\.skip\("Empty starter/);
+  await assert.rejects(app.run(created.ref), (e: unknown) => (e as { code?: string }).code === 'EMPTY_TEST');
+  await attach(app);
+  await act(app, 'launch_app');
+  const before = fs.readFileSync(entry, 'utf8');
+  assert.throws(() => app.project.create(body), (e: unknown) => (e as { code?: string }).code === 'TEST_EXISTS');
+  assert.equal(app.steps.length, 1, 'a rejected creation preserves current steps');
+  assert.equal(fs.readFileSync(entry, 'utf8'), before, 'a rejected creation preserves the existing file');
+  assert.throws(() => app.project.create({ ...body, name: '  ' }), /Enter a test name/);
+  assert.throws(() => app.project.create({ ...body, name: 'another', pkg: 'invalid' }), /valid Android package/);
+  const saved = app.save(body);
+  assert.deepEqual(saved.saved.conflicts, []);
+  assert.match(fs.readFileSync(entry, 'utf8'), /driver\.activate_app\(APP_PACKAGE\)/);
+  assert.doesNotMatch(fs.readFileSync(entry, 'utf8'), /Empty starter/);
+});
+
+test('empty Plain and POM starters skip in standalone pytest without opening a phone session', { skip: noPython }, async (t) => {
+  const { app, out } = await setup(t);
+  for (const mode of ['plain', 'pom'] as const) {
+    const created = app.project.create({ name: `empty ${mode}`, module: 'shop', mode, pkg: 'com.yourname.tradehub' });
+    const entry = path.join(out, 'shop', `empty-${mode}`, created.files.find((f) => f.role === 'entry')!.path);
+    const result = spawnSync(python.command!.file, [...python.command!.args, '-m', 'pytest', '-q', entry], {
+      cwd: path.dirname(entry), encoding: 'utf8', windowsHide: true, timeout: 20_000,
+      env: { ...process.env, APPIUM_URL: 'http://127.0.0.1:1' },
+    });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /1 skipped/, mode);
+  }
 });

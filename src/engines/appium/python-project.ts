@@ -591,6 +591,7 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
   const secrets = dataValues.filter((d) => d.secretEnv).map((d) => d.secretEnv!);
   if (secrets.length) test.push(`Sensitive input: set ${[...new Set(secrets)].join(', ')} before running (the values are never stored).`);
   test.push('"""', '');
+  if (!body.length) test.push('import pytest', '');
   if (imports.has('time')) test.push('import time', '');
   const dataImports = ['DATA', 'secret'].filter((x) => imports.has(x));
   const baseImports = ['APP_PACKAGE', 'checkpoint', 'wait_activity'].filter((x) => imports.has(x));
@@ -598,8 +599,8 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
   if (baseImports.length) test.push(`from ${pkgName}.base_page import ${baseImports.join(', ')}`);
   if (dataImports.length) test.push(`from ${dataPkg}.data import ${dataImports.join(', ')}`);
   if (baseImports.length || dataImports.length) test.push('');
-  test.push('', `def test_${stem}_pom(${['driver', ...used.map(pageVar)].join(', ')}):`);
-  if (!body.length) test.push('    pass  # no steps recorded yet');
+  test.push('', `def test_${stem}_pom(${body.length ? ['driver', ...used.map(pageVar)].join(', ') : ''}):`);
+  if (!body.length) test.push('    pytest.skip("Empty starter: record steps in Vortex and save this test before running.")');
   for (const l of body) test.push('    ' + l);
   files.push({ path: `appium/pom/tests/test_${stem}_pom.py`, content: test.join('\n') + '\n', framework: 'appium', variant: 'pom', role: 'entry' });
   if (!lib) return { files, issues };

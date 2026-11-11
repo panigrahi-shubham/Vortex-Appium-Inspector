@@ -118,6 +118,7 @@ const routes: Route[] = [
   // Saved tests
   { method: 'POST', path: '/api/generate', exclusive: true, run: (b) => app.build(b) },
   { method: 'POST', path: '/api/save', exclusive: true, run: (b) => app.save(b) },
+  { method: 'POST', path: '/api/new', exclusive: true, run: (b) => app.project.create(b) },
   { method: 'POST', path: '/api/load', exclusive: true, run: (b) => app.load({ module: b.module, case: b.case }) },
   { method: 'POST', path: '/api/screen-page', exclusive: true, run: (b) => app.screenPage(b) },
   { method: 'POST', path: '/api/run', exclusive: true, run: (b) => app.run({ module: b.module, case: b.case }) },

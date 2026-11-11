@@ -13,6 +13,32 @@
 * {
   box-sizing: border-box;
 }
+[hidden] { display: none !important; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.workspace-tabs { display: flex; gap: 8px; padding: 12px 26px; border-bottom: 1px solid var(--border); }
+.workspace-tabs [aria-selected="true"] { background: #263c68; border-color: var(--blue); }
+#inspectMode { width: 100%; }
+.copy-tools { padding: 10px; background: #101c2c; border: 1px solid #3f5680; border-radius: 8px; }
+.clipboard-fallback { position: fixed; top: 0; left: -10000px; }
+.tutorial { max-width: 1280px; margin: auto; padding: 30px 26px 50px; line-height: 1.7; }
+.tutorial-intro { max-width: 850px; margin-bottom: 25px; }
+.tutorial-intro .badge { margin: 0; }
+.tutorial h1 { font-size: clamp(25px, 3vw, 36px); line-height: 1.2; margin: 12px 0; }
+.tutorial p { color: #c1cde0; }
+.tutorial-flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.tutorial-flow span { padding: 7px 14px; border: 1px solid #3f5680; border-radius: 25px; color: #abedda; background: #152c30; }
+.tutorial-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.tutorial article { padding: 24px; }
+.tutorial h2 { color: #abedda; font-size: 18px; }
+.tutorial li { padding-left: 4px; margin-bottom: 10px; }
+.tutorial ol { padding-left: 20px; }
+.tutorial dt { font-weight: 600; margin-top: 16px; }
+.tutorial dd { margin: 4px 0 0; color: #c1cde0; }
+.tutorial code { overflow-wrap: anywhere; color: #abedda; }
+#newFileForm { display: grid; gap: 16px; min-width: min(430px, 75vw); }
+#newFileForm p { margin: 0; line-height: 1.6; }
+.form-error { color: #ffc1c7; }
+@media (max-width: 850px) { .tutorial-grid { grid-template-columns: 1fr; } }
 body {
   margin: 0;
   background: var(--bg);

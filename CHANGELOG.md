@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added: explicit Inspect element mode and clipboard actions for the selected locator, Python lookup, element details and generated file code.
+- Added: New file dialog and `POST /api/new`, creating real Plain/POM starter files without overwriting an existing test. Failed creation preserves current recorded steps.
+- Added: Tutorial tab explaining setup, inspection, copying, file creation, recording, saving, replay and troubleshooting, with buttons to find each control.
+- Fixed: new/cleared recordings and subsequent actions no longer display a stale generated preview; refreshed screens disable copy actions for the old selection.
+- Empty starters are blocked from replay in Vortex and skipped in standalone pytest without starting a device session.
+
 ## 1.0.0
 
 Locators

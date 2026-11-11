@@ -5,7 +5,7 @@ The extracted v1.0.0 source was merged into the original `vortex-appium-recorder
 ## Windows automated checks
 
 - Node.js 24.15.0: `npm run typecheck` passed.
-- `npm test` from the merged original folder: **92 passed, 0 failed, 0 skipped**.
+- `npm test` from the merged original folder, including the workspace UI additions: **95 passed, 0 failed, 0 skipped**.
 - The suite includes browser recording/save/replay and repair, generated Plain/POM execution by pytest, and actual child-process/HTTP server lifecycle tests. The phone and Appium endpoints in this suite are simulated.
 - Windows testing exposed and fixed loss of startup failure status/logs when a child exits during process-identity lookup. Regression checks cover the exit state, exit code and retained log path.
 - Readiness polling now backs off on HTTP 503 while the server initializes. The restart test waits for both the running process and its completion notice.
@@ -27,3 +27,10 @@ Generated account-specific tests, screenshots, JUnit results and run logs remain
 ## Remaining scope
 
 This smoke test does not complete every item in [ACCEPTANCE.md](ACCEPTANCE.md). Physical-device WebView DOM inspection, secret entry, locator repair, unplug/cancel recovery, deep links, long press/double tap, shared-library extension across multiple physical-device tests and performance comparisons were not exercised. Relevant automated scenarios use simulated devices. IndiaMART was launched, but the completed recording uses StockPilot B2B; no IndiaMART product mutation was tested.
+
+## Inspect, copy, new file and tutorial follow-up
+
+- Browser integration checks exercise explicit Inspect mode without phone actions, raw locator/Python/JSON copying, switching and deselecting locators, the Clipboard API denial fallback, stale-selection disabling, file-code copying, tutorial navigation and a narrow viewport.
+- New-file tests verify on-disk creation, duplicate-name refusal, preservation of current steps after a rejected creation, and replacing the empty starter with newly recorded steps. Empty Plain/POM starters were executed by standalone pytest against an unreachable Appium URL: both skipped without opening a device session. Vortex itself blocks replay of an empty starter.
+- A separate browser check against the running real-device session verified Inspect and all three element-copy actions on the Moto G32. The New file dialog was opened and cancelled, tutorial desktop/mobile layouts were inspected, no `/api/action` requests were sent, and the user's two recorded steps were preserved. Actual starter creation was tested in isolated test output, not against the user's current recording.
+- Device screenshots and UI proof images remain local in `.vortex/ui-proof/` and are excluded from Git.

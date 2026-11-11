@@ -706,8 +706,8 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   lines.push('            drv.quit()  # always end the Appium session');
   lines.push('');
   lines.push('');
-  lines.push(`def test_${s}(driver):`);
-  if (!body.length) lines.push('    pass  # no steps recorded yet');
+  lines.push(`def test_${s}(${body.length ? 'driver' : ''}):`);
+  if (!body.length) lines.push('    pytest.skip("Empty starter: record steps in Vortex and save this test before running.")');
   for (const l of body) lines.push('    ' + l);
   lines.push('');
   return { code: lines.join('\n'), fileName: `test_${s}.py`, testName: `test_${s}` };

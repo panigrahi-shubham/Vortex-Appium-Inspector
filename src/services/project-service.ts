@@ -2,6 +2,7 @@
 // page objects for a whole screen, and repairing a step whose control was not found.
 
 import fs from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { anchorCandidates } from '../engines/appium/anchor-locators.ts';
 import type { AppiumInspector } from '../engines/appium/inspector.ts';
@@ -14,7 +15,7 @@ import { fromUiSteps, slug, type LocatorParts, type UiStep } from '../model/reco
 import { buildCase, caseDir, readCaseRecording, readManifest, saveCase, type CaseRef, type Manifest, type Mode, type SharedOutput } from '../project/project.ts';
 import { pendingLibraryReview, readLibrary, writeLibrary } from '../project/shared-library.ts';
 import type { LocatorHistory } from './locator-history.ts';
-import { problem, VERSION } from './problem.ts';
+import { assertPackage, problem, VERSION } from './problem.ts';
 import type { RecordingStore } from './recording-store.ts';
 import type { SessionService } from './session-service.ts';
 
@@ -105,6 +106,28 @@ export class ProjectService {
     return { ...result, sharedFiles: this.#sharedPreview(result) };
   }
 
+  /** Creates a saved, empty starter without overwriting a case or discarding steps on failure. */
+  create(body: Record<string, unknown>) {
+    const { recording, session, runner, inspector, outDir } = this.#d;
+    if (runner.active().length) throw problem('Wait for the active replay before creating a file.', 'RUN_ACTIVE', 409);
+    const name = String(body.name ?? '').trim();
+    const module = String(body.module ?? '').trim();
+    if (!name || !module) throw problem('Enter a test name and module.');
+    const pkg = String(body.pkg || recording.pkg);
+    assertPackage(pkg);
+    if (inspector.status().open && recording.pkg !== pkg) throw problem('Detach before creating a file for a different app.', 'RECORDING_TARGET', 409);
+    const ref = { module: slug(module), case: slug(name) };
+    if (fs.existsSync(caseDir(outDir, ref))) throw problem('A test with this name already exists in that module. Choose another name or load the saved test.', 'TEST_EXISTS', 409);
+    const input: BuildInput = {
+      steps: [], recordingId: randomUUID(), name, ref, pkg, serial: session.serial,
+      size: recording.recordedSize, mode: body.mode === 'pom' ? 'pom' : body.mode === 'both' ? 'both' : 'plain',
+      target: 'plain', sharedPages: false,
+    };
+    const result = this.#save(input);
+    recording.replace({ steps: [], pkg, recordingId: input.recordingId, recordedSize: input.size });
+    return { ...result, steps: [], sharedFiles: [], name, module: ref.module, pkg };
+  }
+
   load(body: { module: unknown; case: unknown }) {
     const { runner, inspector, recording, outDir } = this.#d;
     if (runner.active().length) throw problem('Wait for the active replay before loading another test.', 'RUN_ACTIVE', 409);
@@ -119,10 +142,11 @@ export class ProjectService {
   async run(body: { module: unknown; case: unknown }) {
     const { runner, session, recording, outDir } = this.#d;
     if (runner.active().length) throw problem('A test is already running.', 'RUN_ACTIVE', 409);
-    if (!session.serial || !recording.pkg) throw problem('Connect a phone and app first.');
     const ref = { module: String(body.module), case: String(body.case) };
     const dir = caseDir(outDir, ref), manifest = readManifest(dir);
     if (!manifest) throw problem('Save this test first.');
+    if (!readCaseRecording(outDir, ref).steps.length) throw problem('This file is an empty starter. Record at least one step and Save test before replaying.', 'EMPTY_TEST', 409);
+    if (!session.serial || !recording.pkg) throw problem('Connect a phone and app first.');
     const entries = Object.entries(manifest.files).filter(([, v]) => v.role === 'entry' && v.discoverable);
     if (Object.keys(manifest.files).some((p) => fs.existsSync(path.join(dir, p + '.vortex-new')))) throw problem('This case has edited files awaiting review. Resolve .vortex-new files before replay.', 'PENDING_REVIEW', 409);
     if (usesSharedPages(manifest)) {

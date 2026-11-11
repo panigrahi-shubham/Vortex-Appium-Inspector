@@ -16,8 +16,12 @@
       <button id="shortcuts" title="Keyboard shortcuts">?</button>
       <button id="setup">Server &amp; setup</button>
     </header>
+    <nav class="workspace-tabs" role="tablist" aria-label="Workspace">
+      <button id="inspectorTab" role="tab" aria-selected="true" aria-controls="inspectorView">Inspector &amp; recorder</button>
+      <button id="tutorialTab" role="tab" aria-selected="false" aria-controls="tutorialView" tabindex="-1">Tutorial · Start here</button>
+    </nav>
     <div id="notice" role="status">Start or connect an Appium server, choose your phone, and attach.</div>
-
+    <div id="inspectorView" role="tabpanel" aria-labelledby="inspectorTab">
     <section class="connection">
       <label
         >Phone<select id="device">
@@ -45,6 +49,8 @@
           <button data-global="press" data-key="HOME">Home</button>
           <button data-global="close_app">Close app</button>
         </div>
+        <button id="inspectMode" class="primary" aria-pressed="true" title="Select elements and copy locators without tapping the phone">Inspect element</button>
+        <p id="inspectHint" class="muted">Inspect mode: click an element on the phone image or in the tree. Its locators appear in the middle panel.</p>
         <label class="inline"><input id="record" type="checkbox" checked /> Record successful actions</label>
         <label class="inline" title="Click a control on the screenshot to tap it on the phone and record the step in one go">
           <input id="quick" type="checkbox" /> Quick record: a click taps and records
@@ -91,6 +97,12 @@
         <input id="search" type="search" placeholder="Filter the list by text, ID, label or class" aria-label="Search controls" />
         <div id="tree" class="scroll"></div>
         <div id="selected"><strong>No control selected</strong></div>
+        <div class="toolbar copy-tools" aria-label="Copy selected element">
+          <button id="copyLocator" disabled title="Copy only the locator value, ready to paste">Copy locator</button>
+          <button id="copyPython" disabled title="Copy driver.find_element(...) for this locator">Copy Python</button>
+          <button id="copyElement" disabled title="Copy the selected element's details and locator as JSON">Copy element</button>
+        </div>
+        <p id="copyStatus" class="muted" role="status">Select an element to enable copying. Click a locator below to choose what to copy.</p>
         <div class="toolbar">
           <button id="verify" title="Check every candidate on the phone">Verify all on phone</button>
           <label class="inline"><input id="coordinates" type="checkbox" />Coordinate tap</label>
@@ -148,6 +160,7 @@
       <section class="panel recording-panel">
         <div class="panel-heading">
           <h2>Recording <span id="stepCount">0</span></h2>
+          <button id="newFile" class="primary">New file</button>
           <button id="undo">Undo</button>
           <button id="reset">Clear</button>
         </div>
@@ -168,6 +181,7 @@
         </label>
         <div class="toolbar">
           <button id="preview">Preview</button>
+          <button id="copyCode" disabled>Copy file code</button>
           <button id="save" class="primary">Save test</button>
           <button id="run">Run saved test</button>
         </div>
@@ -189,6 +203,63 @@
         <div id="history"></div>
       </section>
     </main>
+    </div>
+
+    <section id="tutorialView" class="tutorial" role="tabpanel" aria-labelledby="tutorialTab" hidden>
+      <div class="tutorial-intro">
+        <span class="badge">YOUR FIRST TEST</span>
+        <h1>From a phone screen to a Python test</h1>
+        <p>Vortex helps you find controls in an Android app, record what you do, and save those actions as a test you can run again. Start with the steps below. You do not need to write Python to record your first flow.</p>
+        <div class="tutorial-flow" aria-label="Workflow"><span>1. Connect</span><span>2. Inspect &amp; copy</span><span>3. Record</span><span>4. Save</span><span>5. Replay</span></div>
+      </div>
+      <div class="tutorial-grid">
+        <article class="panel"><h2>1. Connect your phone and app</h2>
+          <ol><li>Unlock your Android phone, enable USB debugging and connect it by USB. Accept the debugging prompt on the phone.</li><li>Open <strong>Server &amp; setup → Run setup check</strong>. Follow any fixes it reports.</li><li>Choose <strong>Start Appium</strong>, or <strong>Connect existing</strong> if Appium is already running.</li><li>Choose your phone, enter the app package (for example <code>com.stockpilot.b2b</code>) and click <strong>Attach session</strong>.</li><li>Click <strong>Launch app</strong>. Use <strong>Refresh screen</strong> whenever you navigate on the physical phone.</li></ol>
+          <p class="muted">The app package identifies the installed Android app. Appium is the service that controls the phone; Vortex is the inspector and recorder you use here.</p>
+          <button data-guide-target="setup">Find Server &amp; setup</button>
+        </article>
+        <article class="panel"><h2>2. Inspect and copy an element</h2>
+          <ol><li>Click <strong>Inspect element</strong> above the phone image.</li><li>Click a control on the phone image or its row in the middle tree. Inspect mode selects it without tapping the phone.</li><li>Read its details and locators in <strong>Inspect controls</strong>. A locator is an address used to find that control again.</li><li>Click a locator row to choose it. <strong>Copy locator</strong> copies its value; <strong>Copy Python</strong> copies the lookup code; <strong>Copy element</strong> copies its details as JSON.</li></ol>
+          <p class="muted">Prefer a unique ID or accessibility label. “Unique on this screen” uses the captured hierarchy. “Verified on phone” means a live lookup confirmed it. Use Verify all on phone to check every candidate.</p>
+          <button data-guide-target="inspectMode">Find Inspect element</button>
+        </article>
+        <article class="panel"><h2>3. Create a file and record a short flow</h2>
+          <ol><li>Click <strong>New file</strong>. Choose a unique test name, a module and Python output. A module is simply a folder that groups your tests.</li><li>Click <strong>Create file</strong>. Vortex saves an empty starter. If you have current steps, the dialog asks you to save them or explicitly discard them first.</li><li>Keep <strong>Record successful actions</strong> checked. Select a control, then click <strong>Tap</strong> or enter text and click <strong>Fill input</strong>.</li><li>Select a result, choose an assertion such as <strong>Text equals</strong>, enter the expected text and click <strong>Assert</strong>.</li></ol>
+          <p class="muted">Example: open Catalog → fill the search box with “rice” → assert that the search box contains “rice”. Quick record is optional: when enabled, clicking the screenshot taps the phone and records the step.</p>
+          <button data-guide-target="newFile">Find New file</button>
+        </article>
+        <article class="panel"><h2>4. Save the Python test</h2>
+          <ol><li>Choose <strong>Plain pytest</strong> for your first test. It keeps the test in one Python file.</li><li>Click <strong>Preview</strong> to see the generated files. Choose a file in the dropdown to read it, or use <strong>Copy file code</strong>.</li><li>Click <strong>Save test</strong> after recording. The output is saved under <code>&lt;output folder&gt;/&lt;module&gt;/&lt;test-name&gt;/</code>, usually inside <code>generated/</code>.</li></ol>
+          <p class="muted"><strong>Page Object Model (POM)</strong> puts reusable controls and actions into page classes. <strong>Both</strong> creates Plain and POM, running Plain by default. Use <strong>Save page object</strong> if you only want a page class from the current screen.</p>
+          <button data-guide-target="save">Find Save test</button>
+        </article>
+        <article class="panel"><h2>5. Replay and read the result</h2>
+          <ol><li>Put the app in the starting state your recording expects. Handle startup offers or permission prompts consistently.</li><li>Save your latest steps, choose the saved test and click <strong>Run saved test</strong>.</li><li>Read <strong>Run result</strong>. Passed means pytest executed the test successfully. A new, empty starter cannot be replayed until you record and save steps.</li><li>After replay, click <strong>Attach session</strong> again to continue inspecting. Use <strong>Load recording</strong> to edit an existing saved flow.</li></ol>
+          <p class="muted">Replay performs the recorded actions again. Use a test account for flows that change app data. Clearing or undoing recorded steps does not undo actions already performed on the phone.</p>
+          <button data-guide-target="run">Find Run saved test</button>
+        </article>
+        <article class="panel"><h2>When something is confusing</h2>
+          <dl><dt>No controls or wrong screenshot?</dt><dd>Attach the correct app, then Refresh screen. A WebView may only expose native controls unless the app enables DOM debugging.</dd><dt>Copy buttons are disabled?</dt><dd>Select a control first. Coordinates are a point on the screen, not an element locator.</dd><dt>The screen changed?</dt><dd>Refresh and select the control again before acting.</dd><dt>A test failed?</dt><dd>Read the failing step and saved screenshot. If a control changed, Repair step can suggest a replacement. Confirm the app reached the right screen first.</dd><dt>Where are reports?</dt><dd>Recent runs appear in the recorder. Detailed logs, JUnit results and failure captures are saved in the configured state folder under <code>runs/</code> (normally <code>.vortex/runs/</code>).</dd></dl>
+          <p class="muted">Tutorial buttons only show the relevant control; they do not perform phone actions.</p>
+        </article>
+      </div>
+    </section>
+
+    <dialog id="newFileDialog" aria-labelledby="newFileTitle">
+      <form id="newFileForm">
+        <div class="dialog-head"><h2 id="newFileTitle">New test file</h2><button id="newFileClose" type="button">Cancel</button></div>
+        <p>Create a Python test starter, then record actions and Save test to fill it in. Existing saved files are kept.</p>
+        <label>Test name<input id="newFileName" required maxlength="80" placeholder="For example, catalog search" /></label>
+        <label>Module<input id="newFileModule" required maxlength="60" value="general" /></label>
+        <label>Python output<select id="newFileMode"><option value="plain">Plain pytest · recommended to start</option><option value="pom">Page Object Model</option><option value="both">Both (run Plain)</option></select></label>
+        <div id="newFileExisting" hidden>
+          <p>You have recorded steps in the current test.</p>
+          <label class="inline"><input type="checkbox" id="discardForNew" /> I have saved them, or want to discard these recorded steps.</label>
+        </div>
+        <p id="newFileError" class="form-error" role="alert"></p>
+        <button class="primary" type="submit">Create file</button>
+      </form>
+    </dialog>
 
     <dialog id="serverDialog">
       <div class="dialog-head">

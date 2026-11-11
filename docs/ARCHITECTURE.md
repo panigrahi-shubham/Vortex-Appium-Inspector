@@ -56,6 +56,7 @@ src/simulator/           the simulated phone used by --mock and by the tests
 - The shared page library is per app package and append-only: nothing is removed when a test is deleted. If you move a shared-page test out of the output folder, set `VORTEX_SHARED_PAGES`.
 - Stability across captures needs at least three resource-ids on a screen to recognise it as "the same screen".
 - Automatic restart is opt-in and applies only to servers Vortex started.
+- `POST /api/new` creates an empty saved starter through the same manifest-based save path. Existing case folders are refused before recording state changes. Empty starters cannot be replayed; their generated standalone tests skip without requesting the driver fixture.
 - A chosen native locator is stored as ID, label, text or XPath; UiSelector-only forms are converted to those. DOM selectors can be selected or entered explicitly.
 - Locator search and instant ranking describe the captured screen. A count can differ on the device if the screen changed since the capture; refresh first.
 - Page objects are generated from one capture and are not checked on the device. Row-addressed locators follow list order.
@@ -63,5 +64,5 @@ src/simulator/           the simulated phone used by --mock and by the tests
 - App navigation is not inferred. Add explicit waits/assertions for the real destination and expected update result. Arbitrary animation or server-side timing is not proven by a screenshot.
 - Unsaved recordings are autosaved, but a test must be saved before it can be replayed. Crash-interrupted pytest jobs may require inspecting `.vortex/runs/` and existing Appium sessions before resuming; automatic resumption is not implemented.
 - The GitHub Actions workflow covers Linux and Windows; its remote result is separate from local validation.
-- Typecheck and all 92 automated tests pass on Windows, including real PowerShell process lookup and process lifecycle checks. The double-click launcher was not separately exercised.
+- Typecheck and all 95 automated tests pass on Windows, including real PowerShell process lookup and process lifecycle checks. The double-click launcher was not separately exercised.
 - Automated validation uses a simulated Appium device. Separate physical-device smoke results are in [VALIDATION.md](VALIDATION.md). Other devices, hardware/network performance and IndiaMART product mutations need separate acceptance testing.

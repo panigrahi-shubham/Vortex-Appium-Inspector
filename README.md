@@ -4,11 +4,19 @@ A separate Appium-only edition of Vortex for Android. Inspect a phone, record ac
 
 [Releases](https://github.com/panigrahi-shubham/Vortex-Appium-Inspector/releases) · [Architecture and limits](docs/ARCHITECTURE.md) · [Real-phone acceptance checklist](docs/ACCEPTANCE.md) · [Changelog](CHANGELOG.md)
 
+## Workspace controls and tutorial
+
+Open **Tutorial · Start here** at the top of the app for a beginner walkthrough: connect your phone, inspect controls, copy locators, create a file, record actions and assertions, save and replay. Each section has a button that shows the relevant control without performing phone actions.
+
+- **Inspect element** above the phone image turns Quick record off. Click a control in the screenshot or tree to select it without tapping the phone.
+- **Copy locator**, **Copy Python** and **Copy element** appear under the selected control. They copy the chosen locator value, a Python lookup, or element details as JSON. Copy buttons clear when the screen or context changes. **Copy file code** copies the displayed generated file.
+- **New file** in the Recording heading creates a saved Plain/POM starter using a test name and module. Existing names are refused. If you have current steps, save them first or explicitly acknowledge discarding them. Record actions, then **Save test** updates the starter. Empty starters cannot replay in Vortex and are skipped when run directly with pytest.
+
 ## Validation status
 
-1.0.0 is feature-complete and passes its automated suite (92 tests): unit tests, the real HTTP API with real processes, generated tests executed by real pytest, and the UI in a browser.
+The current source passes its automated suite (95 tests): unit tests, the real HTTP API with real processes, generated tests executed by real pytest, and the UI in a browser.
 
-The full 92-test suite and typecheck pass on Windows. Those automated tests use a simulated phone and a stand-in for Appium. A separate physical-device smoke test uses a Moto G32 running Android 13, StockPilot B2B (`com.stockpilot.b2b`), Appium 3.9.0 and UiAutomator2 7.6.2. See [validation results and scope](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
+The full 95-test suite and typecheck pass on Windows. Those automated tests use a simulated phone and a stand-in for Appium. A separate physical-device smoke test uses a Moto G32 running Android 13, StockPilot B2B (`com.stockpilot.b2b`), Appium 3.9.0 and UiAutomator2 7.6.2. See [validation results and scope](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
 
 ## New in 1.0.0
 
