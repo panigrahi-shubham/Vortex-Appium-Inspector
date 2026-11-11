@@ -64,6 +64,7 @@ async function open(t: { after(fn: () => Promise<void> | void): void }, extraArg
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('dialog', (d) => void d.accept());
   await page.goto(base);
+  await page.locator('#advancedInspect > summary').click();
   return { page, errors, base };
 }
 
@@ -167,6 +168,7 @@ test('locator search, chosen locator, quick record, secret, step tools and scree
 
   // 1.0: checkpoint and screen-check steps, editing a step, shared page objects in the preview.
   const before = await page.locator('#steps p').count();
+  await page.locator('#actionMoreTab').click();
   await page.locator('#extraValue').fill('home ready');
   await page.locator('#checkpoint').click();
   await stepCount(page, before + 1);
@@ -452,6 +454,7 @@ test('simple inspection previews without round trips and copies text, ID and the
   await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyLocator')?.disabled);
   assert.equal(await page.locator('#locators').evaluate(e => e.scrollTop), 0, 'selecting a different element reveals the best candidates');
   await page.locator('#simplePoint').click();
+  await page.locator('#screenshot').scrollIntoViewIfNeeded();
   const box = (await page.locator('#screenshot').boundingBox())!;
   const clickX = Math.ceil(box.x) + 10, clickY = Math.ceil(box.y) + 10;
   await page.mouse.click(clickX, clickY);
@@ -499,6 +502,7 @@ test('auto-refresh serializes slow captures, pins selection, pauses for editing/
   await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#inspectMode')?.disabled);
   assert.ok(captures > pinned);
   assert.equal(maxInFlight, 1, 'slow captures never overlap');
+  await page.locator('#actionTypeTab').click();
   await page.locator('#text').focus();
   const editing = captures;
   await page.waitForTimeout(2200);

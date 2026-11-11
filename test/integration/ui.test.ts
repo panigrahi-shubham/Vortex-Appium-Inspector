@@ -26,10 +26,11 @@ test('browser UI records, previews, saves and replays through the Appium-only se
   await page.goto(base);await page.waitForFunction(()=>document.querySelector('#device option')?.textContent?.includes('mock-device'));
   await page.locator('#pkg').fill('com.yourname.tradehub');await page.locator('#attach').click();
   await page.waitForFunction(()=>document.querySelector('#notice')?.textContent?.includes('Session attached'));
+  await page.locator('#advancedInspect > summary').click();
   await page.locator('[data-global="launch_app"]').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='1');
   await page.locator('#tree button').filter({hasText:'home_search_input'}).click();
-  await page.locator('#text').fill('UI test');await page.locator('#fill').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='2');
-  await page.locator('#tree button').filter({hasText:'home_search_input'}).click();await page.locator('#assertion').selectOption('text');await page.locator('#expected').fill('UI test');await page.locator('#assert').click();
+  await page.locator('#actionTypeTab').click();await page.locator('#text').fill('UI test');await page.locator('#fill').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='2');
+  await page.locator('#tree button').filter({hasText:'home_search_input'}).click();await page.locator('#actionAssertTab').click();await page.locator('#assertion').selectOption('text');await page.locator('#expected').fill('UI test');await page.locator('#assert').click();
   await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='3');
   await page.locator('[data-global="close_app"]').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='4');
   await page.locator('#name').fill('browser smoke');await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice')?.textContent?.includes('Ready to replay'));

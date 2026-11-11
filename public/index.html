@@ -43,12 +43,6 @@
           <h2>Phone</h2>
           <span id="dimensions"></span>
         </div>
-        <div class="toolbar">
-          <button data-global="launch_app">Launch app</button>
-          <button data-global="press" data-key="BACK">Back</button>
-          <button data-global="press" data-key="HOME">Home</button>
-          <button data-global="close_app">Close app</button>
-        </div>
         <button id="inspectMode" class="primary" aria-pressed="true" title="Select elements and copy locators without tapping the phone">Inspect element</button>
         <p id="inspectHint" class="muted">Inspect mode: click an element on the phone image or in the tree. Its locators appear in the middle panel.</p>
         <div class="live-controls">
@@ -57,7 +51,6 @@
           <button id="resumeLive" hidden>Resume live</button>
         </div>
         <p id="liveScreenStatus" class="muted" role="status">Manual refresh. Enable auto-refresh to follow changes made on the phone.</p>
-        <label class="inline"><input id="record" type="checkbox" checked /> Record successful actions</label>
         <label class="inline" title="Click a control on the screenshot to tap it on the phone and record the step in one go">
           <input id="quick" type="checkbox" /> Quick record: a click taps and records
         </label>
@@ -69,12 +62,6 @@
         </div>
         <p id="hoverLocator" class="hover-locator">Move over the phone image for an instant locator preview. Click to select and copy.</p>
         <p id="point" class="muted">Click the screenshot to inspect a control. Selecting never taps the phone.</p>
-        <div class="toolbar">
-          <button data-swipe="up">Swipe ↑</button>
-          <button data-swipe="down">Swipe ↓</button>
-          <button id="wait">Wait 1.5 s</button>
-          <button data-global="hide_keyboard">Hide keyboard</button>
-        </div>
       </section>
 
       <!-- Inspect -->
@@ -87,23 +74,6 @@
         </div>
         <p id="webStatus" class="muted">No screen captured.</p>
 
-        <div class="locator-search">
-          <select id="searchUsing" aria-label="Locator type">
-            <option value="auto">Auto</option>
-            <option value="id">ID</option>
-            <option value="accessibility id">Accessibility ID</option>
-            <option value="text">Text equals</option>
-            <option value="text contains">Contains</option>
-            <option value="class name">Class</option>
-            <option value="xpath">XPath</option>
-            <option value="-android uiautomator">UiSelector</option>
-          </select>
-          <input id="locatorSearch" type="search" placeholder="Try a locator: id, text, //xpath or new UiSelector()…" aria-label="Try a locator" />
-        </div>
-        <p id="searchResult" class="muted">Matches are counted on the captured screen, instantly, without asking the phone.</p>
-
-        <input id="search" type="search" placeholder="Filter the list by text, ID, label or class" aria-label="Search controls" />
-        <div id="tree" class="scroll"></div>
         <div id="selected"><strong>No control selected</strong></div>
         <section class="simple-inspector" aria-label="Simple element inspector">
           <div class="panel-heading"><strong id="bestLocatorKind">Simple inspect</strong><span class="muted">Text · ID / label · Point</span></div>
@@ -114,43 +84,53 @@
             <button id="simplePoint" disabled>Use point</button>
           </div>
           <p id="bestLocatorNote" class="muted">Text and ID work when Android exposes them, including inside many WebViews. Point taps work at the selected screen position.</p>
-          <code id="bestLocatorPython"></code>
-        </section>
-        <div class="toolbar copy-tools" aria-label="Copy selected element">
+          <div class="toolbar copy-tools" aria-label="Copy selected element">
           <button id="copyLocator" disabled title="Copy only the locator value, ready to paste">Copy locator</button>
           <button id="copyPython" disabled title="Copy driver.find_element(...) for this locator">Copy Python</button>
           <button id="copyElement" disabled title="Copy the selected element's details and locator as JSON">Copy element</button>
-        </div>
-        <p id="copyStatus" class="muted" role="status">Select an element to enable copying. Click a locator below to choose what to copy.</p>
-        <div class="toolbar">
-          <button id="verify" title="Check every candidate on the phone">Verify all on phone</button>
-          <label class="inline"><input id="coordinates" type="checkbox" />Coordinate tap</label>
-        </div>
-        <div id="locators" class="scroll"></div>
-        <label
-          >Locator used for the next action
-          <input id="selector" placeholder="Select a control, then click a locator above to use it" />
-        </label>
-        <select id="using">
-          <option value="css selector">CSS (WebView)</option>
-          <option value="xpath">XPath (WebView)</option>
-        </select>
-        <div class="toolbar">
-          <button id="tap" class="primary">Tap</button>
-          <button id="longpress">Long press</button>
-          <button id="doubletap">Double tap</button>
-          <button id="clear">Clear input</button>
-          <button id="scrollTo">Scroll to</button>
-        </div>
-        <label>Text to fill<input id="text" placeholder="Replaces the current input value. Press Enter to fill." /></label>
-        <div class="secret-row">
-          <label class="inline" title="The value is typed on the phone once and never saved. The test reads it from this environment variable.">
-            <input id="secret" type="checkbox" /> Secret, read from
-          </label>
-          <input id="secretEnv" value="VORTEX_SECRET_PASSWORD" aria-label="Environment variable for the secret" />
-          <button id="fill">Fill input</button>
-        </div>
-        <div class="assert-row">
+          </div>
+          <p id="copyStatus" class="muted" role="status">Select an element to enable copying.</p>
+          <details class="lookup-code"><summary>Show Python lookup</summary><code id="bestLocatorPython"></code></details>
+        </section>
+
+        <section id="actionCenter" class="action-center" aria-labelledby="actionHeading">
+          <div class="panel-heading">
+            <h2 id="actionHeading">Actions</h2>
+            <label class="inline"><input id="record" type="checkbox" checked /> Record successful actions</label>
+          </div>
+          <p class="muted action-help">Select a control above, then choose Tap, Type or Assert. Navigation actions work for the whole app.</p>
+          <div class="toolbar action-navigation" aria-label="App navigation">
+            <button data-global="launch_app">Launch app</button>
+            <button data-global="press" data-key="BACK">Back</button>
+            <button data-global="press" data-key="HOME">Home</button>
+            <button data-global="close_app">Close app</button>
+          </div>
+          <div class="action-tabs" role="tablist" aria-label="Action category">
+            <button id="actionTapTab" role="tab" aria-controls="actionTapPane" aria-selected="true">Tap</button>
+            <button id="actionTypeTab" role="tab" aria-controls="actionTypePane" aria-selected="false" tabindex="-1">Type</button>
+            <button id="actionAssertTab" role="tab" aria-controls="actionAssertPane" aria-selected="false" tabindex="-1">Assert</button>
+            <button id="actionMoreTab" role="tab" aria-controls="actionMorePane" aria-selected="false" tabindex="-1">More</button>
+          </div>
+          <div id="actionTapPane" class="action-pane" role="tabpanel" aria-labelledby="actionTapTab">
+            <p class="muted">Tap the selected element, or its chosen screen point.</p>
+            <div class="toolbar">
+              <button id="tap" class="primary">Tap</button>
+              <button id="longpress">Long press</button>
+              <button id="doubletap">Double tap</button>
+              <button id="scrollTo">Scroll to</button>
+            </div>
+          </div>
+          <div id="actionTypePane" class="action-pane" role="tabpanel" aria-labelledby="actionTypeTab" hidden>
+            <label>Text to type<input id="text" placeholder="Replaces the current input value. Press Enter to type." /></label>
+            <div class="secret-row">
+              <label class="inline" title="The value is typed on the phone once and never saved. The test reads it from this environment variable."><input id="secret" type="checkbox" /> Secret, read from</label>
+              <input id="secretEnv" value="VORTEX_SECRET_PASSWORD" aria-label="Environment variable for the secret" />
+            </div>
+            <div class="toolbar"><button id="fill" class="primary">Type text</button><button id="clear">Clear input</button></div>
+          </div>
+          <div id="actionAssertPane" class="action-pane" role="tabpanel" aria-labelledby="actionAssertTab" hidden>
+            <p class="muted">Check the selected element. Enter an expected value for text or count checks.</p>
+            <div class="assert-row">
           <select id="assertion">
             <option value="visible">Visible</option>
             <option value="hidden">Hidden</option>
@@ -165,14 +145,41 @@
             <option value="count">Count equals</option>
           </select>
           <input id="expected" placeholder="Expected value" />
-          <button id="assert">Assert</button>
-        </div>
-        <div class="extra-row">
-          <input id="extraValue" placeholder="Link to open, or checkpoint name" aria-label="Link or checkpoint name" />
-          <button id="deepLink" title="Open a deep link in the app and record it">Open link</button>
-          <button id="checkpoint" title="Record a screenshot checkpoint: the test saves a picture here">Checkpoint</button>
-          <button id="checkScreen" title="Record a check that the app is on this screen (activity)">Check screen</button>
-        </div>
+          <button id="assert" class="primary">Assert</button>
+            </div>
+          </div>
+          <div id="actionMorePane" class="action-pane" role="tabpanel" aria-labelledby="actionMoreTab" hidden>
+            <div class="toolbar">
+              <button data-swipe="up">Swipe ↑</button><button data-swipe="down">Swipe ↓</button>
+              <button id="wait">Wait 1.5 s</button><button data-global="hide_keyboard">Hide keyboard</button>
+            </div>
+            <div class="extra-row">
+              <input id="extraValue" placeholder="Link to open, or checkpoint name" aria-label="Link or checkpoint name" />
+              <button id="deepLink" title="Open a deep link in the app and record it">Open link</button>
+              <button id="checkpoint" title="Record a screenshot checkpoint: the test saves a picture here">Checkpoint</button>
+              <button id="checkScreen" title="Record a check that the app is on this screen (activity)">Check screen</button>
+            </div>
+          </div>
+        </section>
+
+        <details id="advancedInspect" class="advanced-inspect">
+          <summary>Element tree, search &amp; all locators</summary>
+          <div class="locator-search">
+            <select id="searchUsing" aria-label="Locator type">
+              <option value="auto">Auto</option><option value="id">ID</option><option value="accessibility id">Accessibility ID</option>
+              <option value="text">Text equals</option><option value="text contains">Contains</option><option value="class name">Class</option>
+              <option value="xpath">XPath</option><option value="-android uiautomator">UiSelector</option>
+            </select>
+            <input id="locatorSearch" type="search" placeholder="Try a locator: id, text, //xpath or new UiSelector()…" aria-label="Try a locator" />
+          </div>
+          <p id="searchResult" class="muted">Matches are counted on the captured screen, instantly, without asking the phone.</p>
+          <input id="search" type="search" placeholder="Filter the list by text, ID, label or class" aria-label="Search controls" />
+          <div id="tree" class="scroll"></div>
+          <div class="toolbar"><button id="verify" title="Check every candidate on the phone">Verify all on phone</button><label class="inline"><input id="coordinates" type="checkbox" />Coordinate tap</label></div>
+          <div id="locators" class="scroll"></div>
+          <label>Locator used for the next action<input id="selector" placeholder="Select a control, then click a locator above to use it" /></label>
+          <select id="using"><option value="css selector">CSS (WebView)</option><option value="xpath">XPath (WebView)</option></select>
+        </details>
       </section>
 
       <!-- Recording -->
@@ -245,7 +252,7 @@
           <button data-guide-target="inspectMode">Find Inspect element</button>
         </article>
         <article class="panel"><h2>3. Create a file and record a short flow</h2>
-          <ol><li>Click <strong>New file</strong>. Choose a unique test name, a module and Python output. A module is simply a folder that groups your tests.</li><li>Click <strong>Create file</strong>. Vortex saves an empty starter. If you have current steps, the dialog asks you to save them or explicitly discard them first.</li><li>Keep <strong>Record successful actions</strong> checked. Select a control, then click <strong>Tap</strong> or enter text and click <strong>Fill input</strong>.</li><li>Select a result, choose an assertion such as <strong>Text equals</strong>, enter the expected text and click <strong>Assert</strong>.</li></ol>
+          <ol><li>Click <strong>New file</strong>. Choose a unique test name, a module and Python output. A module is simply a folder that groups your tests.</li><li>Click <strong>Create file</strong>. Vortex saves an empty starter. If you have current steps, the dialog asks you to save them or explicitly discard them first.</li><li>All phone actions are together in the <strong>Actions</strong> panel beneath the selected locator. Keep <strong>Record successful actions</strong> checked. Choose <strong>Tap</strong> for taps and gestures, or <strong>Type</strong> to enter text and click <strong>Type text</strong>.</li><li>Select a result, open <strong>Actions → Assert</strong>, choose a check such as <strong>Text equals</strong>, enter the expected text and click <strong>Assert</strong>. <strong>More</strong> contains swipes, waits, keyboard, links and checkpoints.</li></ol>
           <p class="muted">Example: open Catalog → fill the search box with “rice” → assert that the search box contains “rice”. Quick record is optional: when enabled, clicking the screenshot taps the phone and records the step.</p>
           <button data-guide-target="newFile">Find New file</button>
         </article>

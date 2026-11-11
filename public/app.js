@@ -145,8 +145,8 @@ function renderSimpleInspector() {
   $("bestLocatorValue").textContent = locator?.value || "Select an element on the phone image or in the tree.";
   $("bestLocatorPython").textContent = locator ? pythonLookup(locator) : "";
   $("bestLocatorNote").textContent = locator?.using === "coordinates"
-    ? `Point tap at ${pct(point.x, screen.width)}, ${pct(point.y, screen.height)} of the screen. Click Tap to execute. This position depends on layout and scroll; it is not an element assertion.`
-    : "Suggested from the captured hierarchy. Live verification appears in the full locator list below. Text and ID can work in WebViews even when DOM access is unavailable.";
+    ? `Point at ${pct(point.x, screen.width)}, ${pct(point.y, screen.height)}. Layout-dependent; use Tap to execute. Points are not element assertions.`
+    : "From the captured screen. Text and ID can work in WebViews without DOM access. Expand all locators for verification.";
 }
 function usePoint() {
   if (!screen || !point) return;
@@ -256,7 +256,7 @@ function renderScreen(fresh) {
   locatorToCopy = null;
   defaultLocatorToCopy = null;
   currentCandidates = [];
-  $("copyStatus").textContent = "Select an element to enable copying. Click a locator below to choose what to copy.";
+  $("copyStatus").textContent = "Select an element, then choose Text, ID / label or Point to copy.";
   updateCopyButtons();
   searchHits = null;
   $("selected").textContent = "No control selected";
@@ -342,10 +342,11 @@ async function choose(n) {
     defaultLocatorToCopy = locatorToCopy;
   }
   if ($("coordinates").checked) usePoint();
-  $("copyStatus").textContent = "Element inspected. Copy its locator, Python lookup, or details using the buttons above.";
+  $("copyStatus").textContent = "Selected. Copy the locator, Python or element details.";
   updateCopyButtons();
   showPoint();
   if (isNative() && result.recommended) confirmOnPhone(token, n.index, result.recommended);
+  $("actionCenter").scrollIntoView({ block: "nearest" });
 }
 
 /** Background check of the recommended locator: one lookup on the phone, never blocking the tester. */
@@ -525,6 +526,33 @@ function fill() {
   });
 }
 
+const actionPanes = {
+  tap: ["actionTapTab", "actionTapPane"], type: ["actionTypeTab", "actionTypePane"],
+  assert: ["actionAssertTab", "actionAssertPane"], more: ["actionMoreTab", "actionMorePane"],
+};
+function showActionPane(kind, focus = false) {
+  for (const [name, [tab, pane]] of Object.entries(actionPanes)) {
+    $(pane).hidden = name !== kind;
+    $(tab).setAttribute("aria-selected", String(name === kind));
+    $(tab).tabIndex = name === kind ? 0 : -1;
+  }
+  if (focus && kind === "type") $("text").focus();
+  else if (focus && kind === "assert") $("assertion").focus();
+  $("actionCenter").scrollIntoView({ block: "nearest" });
+}
+for (const [kind, [tab]] of Object.entries(actionPanes)) {
+  $(tab).onclick = () => showActionPane(kind, true);
+  $(tab).onkeydown = (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const kinds = Object.keys(actionPanes), index = kinds.indexOf(kind);
+    const next = event.key === "Home" ? kinds[0] : event.key === "End" ? kinds.at(-1) : kinds[(index + (event.key === "ArrowRight" ? 1 : -1) + kinds.length) % kinds.length];
+    showActionPane(next);
+    $(actionPanes[next][0]).focus();
+  };
+}
+
 function hitAt(p) {
   return nodes()
     .filter((n) => {
@@ -572,7 +600,7 @@ $("screenshot").onclick = (e) =>
       }
       if (/EditText$|^(input|textarea)$/i.test(hit.className)) {
         await choose(hit);
-        $("text").focus();
+        showActionPane("type", true);
         notice("Type the text and press Enter to fill this field.");
         return;
       }
@@ -1179,7 +1207,7 @@ function showWorkspace(tutorial) {
 }
 $("inspectorTab").onclick = () => showWorkspace(false);
 $("tutorialTab").onclick = () => showWorkspace(true);
-document.querySelectorAll('[role="tab"]').forEach((tab) => tab.addEventListener("keydown", (e) => {
+document.querySelectorAll('.workspace-tabs [role="tab"]').forEach((tab) => tab.addEventListener("keydown", (e) => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
   e.preventDefault();
   e.stopPropagation();
@@ -1316,15 +1344,15 @@ document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]")) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
   const run = {
-    "/": () => $("locatorSearch").focus(),
+    "/": () => { $("advancedInspect").open = true; $("locatorSearch").focus(); },
     q: () => {
       $("quick").checked = !$("quick").checked;
       $("quick").onchange();
     },
-    t: () => task(() => act("tap")),
-    f: () => $("text").focus(),
-    a: () => task(() => assertNow("visible")),
-    v: () => $("verify").click(),
+    t: () => { showActionPane("tap"); task(() => act("tap")); },
+    f: () => showActionPane("type", true),
+    a: () => { showActionPane("assert"); task(() => assertNow("visible")); },
+    v: () => { $("advancedInspect").open = true; $("verify").click(); },
     r: () => task(refresh),
     u: () => $("undo").click(),
     s: () => $("save").click(),

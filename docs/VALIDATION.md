@@ -44,3 +44,9 @@ This smoke test does not complete every item in [ACCEPTANCE.md](ACCEPTANCE.md). 
 - A real IndiaMART browser check verified hover, text/point selection, Python copying and auto-refresh with the corrected 1080×2400 coordinate space, preserving the user's five recorded steps.
 - A further real-device check used an unrecorded coordinate tap to open IndiaMART's Buy Leads tab, verified a native text selector inside the WebView as unique on the phone, and returned Home with another unrecorded point tap. Only `NATIVE_APP` was available and no DOM context was connected. The five recorded steps remained unchanged; no buyer contact action was executed.
 - This implements a Maestro-style inspection experience through the existing Appium/Python stack. It does not add Maestro CLI execution or unlock unexposed WebView DOM content.
+
+## Consolidated Actions layout
+
+- Tap, Type, Assert and More now share one Actions panel beneath the selected locator. App navigation and the recording toggle are in that panel; the tree, search and full locator list are expandable below it. The Python preview is expandable to keep common actions in view.
+- Typecheck and all **9 browser integration tests** passed after this layout change, including actual text entry, assertions, generated-test replay, quick-record secret input, checkpoints, repair, simple point selection and auto-refresh. Backend behavior is unchanged from the full 99-test run above.
+- Desktop (1700×950) and mobile (390×844) browser layout checks verified the action categories, keyboard tab navigation and F-to-Type shortcut. Each action pane fit within the desktop viewport, and mobile showed no horizontal overflow. The check used the connected phone session, sent no `/api/action` commands and preserved the current recording.

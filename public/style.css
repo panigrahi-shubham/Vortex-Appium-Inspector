@@ -48,6 +48,34 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-
 .simple-inspector #bestLocatorValue { color: #abedda; font-weight: 600; max-height: 100px; overflow: auto; }
 .simple-inspector #bestLocatorPython { padding-top: 10px; border-top: 1px solid #285448; }
 #webStatus.fallback { padding: 10px; border-left: 3px solid var(--green); background: #132c2a; color: #c5f4e3; }
+.action-center { padding: 14px; border: 1px solid #4e70a8; border-radius: 10px; background: #111f35; margin: 12px 0; }
+.action-center > .panel-heading { margin-bottom: 6px; flex-wrap: wrap; }
+.action-center .panel-heading .inline { font-size: 11px; }
+.action-center .action-help { margin: 6px 0; }
+.action-center .toolbar { margin: 8px 0; }
+.action-center .action-navigation button { font-size: 12px; padding: 7px 9px; }
+.action-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 12px 0 0; }
+.action-tabs button { padding: 10px 6px; font-weight: 650; }
+.action-tabs [aria-selected="true"] { background: #5279f4; border-color: #86a4ff; color: white; }
+.action-pane { padding-top: 10px; min-height: 95px; }
+.action-pane > .muted { margin: 0 0 10px; }
+.action-pane input:not([type="checkbox"]) { width: 100%; }
+.action-center .secret-row { grid-template-columns: auto minmax(0, 1fr); margin: 10px 0; }
+.action-center .extra-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.action-center .extra-row input { grid-column: 1 / -1; }
+.simple-inspector { padding: 12px; }
+.simple-inspector .toolbar { margin: 6px 0; }
+.simple-inspector button { font-size: 12px; padding: 6px 8px; }
+.simple-inspector .copy-tools { padding: 0; background: transparent; border: 0; margin: 8px 0; }
+.simple-inspector #copyStatus, .simple-inspector #bestLocatorNote { font-size: 11px; line-height: 1.4; margin: 7px 0; }
+.simple-inspector #bestLocatorValue { max-height: 52px; }
+.lookup-code > summary { cursor: pointer; color: var(--muted); font-size: 11px; }
+.lookup-code #bestLocatorPython { margin-top: 8px; max-height: 100px; overflow: auto; }
+#selected { max-height: 55px; overflow: auto; }
+.advanced-inspect { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.advanced-inspect > summary { cursor: pointer; color: #b7caff; font-weight: 600; }
+.advanced-inspect .locator-search { margin-top: 12px; }
+.advanced-inspect > label { margin: 10px 0; }
 @media (max-width: 850px) { .tutorial-grid { grid-template-columns: 1fr; } }
 body {
   margin: 0;

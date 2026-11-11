@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Changed: all phone actions are grouped beneath the selected locator in one Actions panel, with Tap, Type, Assert and More tabs. App navigation and the recording toggle stay in that panel; the full tree, locator list and Python lookup are expandable. Quick-record input selection and keyboard shortcuts reveal the appropriate action category.
+
 - Added: simple inspection with visible Text, ID/label and Point choices, Python previews, and instant hover suggestions from the captured hierarchy.
 - Added: optional auto-refresh (2 or 5 seconds), pausing for pinned selections, editing, dialogs and hidden Inspector tabs; Resume live and stop-on-capture-failure behavior.
 - Fixed: locator lists return to the top after selecting another control, keeping recommended text/ID candidates visible.
