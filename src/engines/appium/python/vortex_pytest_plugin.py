@@ -68,6 +68,7 @@ def pytest_runtest_makereport(item, call):
     if d is None:
         return
     safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", item.nodeid)[-120:]
+    _write("artifacts.jsonl", {"type": "step", "test": item.nodeid, **getattr(d, "_vortex_step", {})})
     try:
         _write("artifacts.jsonl", {"type": "state", "test": item.nodeid, "package": d.current_package, "activity": d.current_activity, "context": d.context})
     except Exception as e:  # noqa: BLE001

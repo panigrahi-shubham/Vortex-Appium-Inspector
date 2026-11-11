@@ -156,7 +156,7 @@ export class Application {
   build(body: Record<string, unknown>) { return this.project.build(body); }
   save(body: Record<string, unknown>) { return this.project.save(body); }
   load(body: { module: unknown; case: unknown }) { return this.project.load(body); }
-  run(body: { module: unknown; case: unknown }) { return this.project.run(body); }
+  run(body: { module: unknown; case: unknown; stopAfterStep?: unknown }) { return this.project.run(body); }
   screenPage(body: Record<string, unknown>) { return this.project.screenPage(body); }
   repairSuggest(body: Record<string, unknown>) { return this.project.repairSuggest(body); }
   repairApply(body: Record<string, unknown>) { return this.project.repairApply(body); }

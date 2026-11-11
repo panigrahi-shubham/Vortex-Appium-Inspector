@@ -120,6 +120,24 @@
               <button id="scrollTo">Scroll to</button>
             </div>
           </div>
+          <details id="reliabilitySettings" class="advanced-inspect">
+            <summary>Reliability settings · waits, scrolling &amp; navigation</summary>
+            <div class="toolbar">
+              <label>Condition timeout (s)<input id="reliabilityTimeout" type="number" min="1" max="120" value="15" /></label>
+              <label>Maximum scrolls<input id="reliabilityScrolls" type="number" min="1" max="50" value="8" /></label>
+              <label>Stable bounds (ms)<input id="reliabilityStable" type="number" min="0" max="2000" value="150" /></label>
+            </div>
+            <label class="inline"><input id="suggestNavigation" type="checkbox" checked /> Suggest navigation assertions for my approval</label>
+            <label class="inline"><input id="hideKeyboardBeforeTap" type="checkbox" checked /> Dismiss keyboard before native app element taps</label>
+            <p class="muted">Tests wait for conditions. Explicit pauses and swipe gestures remain as recorded. Missing or ambiguous targets fail; locators and expected results are never silently replaced.</p>
+            <label>Off-screen scroll target (optional)<input id="scrollTargetValue" placeholder="For example: Write a review" /></label>
+            <div class="toolbar">
+              <select id="scrollTargetBy" aria-label="Scroll target locator type"><option value="text">Native text</option><option value="id">Native ID</option><option value="label">Native accessibility label</option><option value="xpath">XPath</option><option value="css">WebView CSS</option></select>
+              <select id="scrollDirection" aria-label="Scroll direction"><option value="down">Scroll down</option><option value="up">Scroll up</option><option value="right">Scroll right</option><option value="left">Scroll left</option></select>
+              <button id="reliableScroll">Scroll until visible</button>
+            </div>
+            <label>Scroll container (optional)<input id="scrollContainerValue" placeholder="Native resource ID or WebView CSS; blank chooses an unambiguous container" /></label>
+          </details>
           <div id="actionTypePane" class="action-pane" role="tabpanel" aria-labelledby="actionTypeTab" hidden>
             <label>Text to type<input id="text" placeholder="Replaces the current input value. Press Enter to type." /></label>
             <div class="secret-row">
@@ -151,7 +169,8 @@
           <div id="actionMorePane" class="action-pane" role="tabpanel" aria-labelledby="actionMoreTab" hidden>
             <div class="toolbar">
               <button data-swipe="up">Swipe ↑</button><button data-swipe="down">Swipe ↓</button>
-              <button id="wait">Wait 1.5 s</button><button data-global="hide_keyboard">Hide keyboard</button>
+              <button id="waitVisible">Wait visible</button><button id="waitHidden">Wait hidden</button>
+              <button id="wait">Pause 1.5 s (explicit)</button><button data-global="hide_keyboard">Hide keyboard</button>
             </div>
             <div class="extra-row">
               <input id="extraValue" placeholder="Link to open, or checkpoint name" aria-label="Link or checkpoint name" />
@@ -222,6 +241,8 @@
         <select id="saved" aria-label="Saved tests">
           <option value="">Save a test first</option>
         </select>
+        <label>Playback scope<select id="playbackCheckpoint"><option value="">Full saved test</option></select></label>
+        <p class="muted">Checkpoint playback starts from step 1 and stops after the chosen saved checkpoint. Later steps are not tested.</p>
         <h3>Run result <button id="cancel">Cancel run</button></h3>
         <pre id="output">No replay yet. Running detaches the Inspector and hands the phone to pytest.</pre>
         <div id="repair" hidden></div>

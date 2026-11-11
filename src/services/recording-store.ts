@@ -60,6 +60,27 @@ export class RecordingStore {
     this.persist();
   }
 
+  /** Approval adds an explicit check; it never changes an existing expected value. */
+  approveSuggestion(index: unknown, id: unknown) {
+    const parent = this.steps[this.#index(index)];
+    const suggestion = parent.reliability?.suggestions.find(s => s.id === id);
+    if (!suggestion || suggestion.accepted) throw problem('This suggestion is missing or already approved.');
+    const step: UiStep = {
+      id: randomUUID(), at: new Date().toISOString(), title: `Verify navigation: ${suggestion.title}`,
+      type: suggestion.kind === 'activity' ? 'check_activity' : 'assert',
+      context: suggestion.context, mode: 'name', pre: true,
+      ...(suggestion.parts ? { target: { kind: suggestion.parts.by === 'id' ? 'testId' : suggestion.parts.by, parts: suggestion.parts } } : {}),
+      args: suggestion.kind === 'activity' ? { activity: suggestion.expected } : { assertion: 'visible' },
+      screen: parent.screenAfter ?? parent.screen,
+      ...(parent.reliability?.after ? { reliability: { version: 2 as const, source: 'approved-suggestion' as const, settings: structuredClone(parent.reliability.settings), before: structuredClone(parent.reliability.after), after: structuredClone(parent.reliability.after), attributes: suggestion.attributes ?? null, locator: null, suggestions: [] } } : {}),
+      ...(suggestion.context === 'WEBVIEW' ? { webview: parent.webview } : {}),
+    };
+    this.steps.splice(this.#index(index) + 1, 0, step);
+    suggestion.accepted = true;
+    this.persist();
+    return { steps: this.steps };
+  }
+
   /** Replaces the whole recording, for example when a saved test is loaded. */
   replace(next: { steps: UiStep[]; pkg: string; recordingId: string; recordedSize: Size | null }) {
     Object.assign(this, next);

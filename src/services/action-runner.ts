@@ -14,8 +14,11 @@ import type { Session } from '../engines/appium/webdriver.ts';
 import { framePath, type DomSnapshot } from '../engines/webview/dom.ts';
 import { enterFrames, webCandidates } from '../engines/webview/web-locators.ts';
 import type { UiStep } from '../model/recording.ts';
-import type { LocatorService } from './locator-service.ts';
+import { targetFor, type LocatorService } from './locator-service.ts';
 import { delay, problem } from './problem.ts';
+import { actionEvidence, navigationSuggestions, reliabilitySettings, screenEvidence } from '../reliability.ts';
+import { screenNameFromActivity } from '../model/recording.ts';
+import { explicitScrollTarget, scrollUntilVisible } from './scroll.ts';
 import type { RecordingStore } from './recording-store.ts';
 import type { SessionService } from './session-service.ts';
 import type { Snapshot, Target } from './types.ts';
@@ -45,21 +48,26 @@ export class ActionRunner {
     const screen = sessions.requireScreen(body.token);
     const type = String(body.type);
     const args = { ...((body.args as Record<string, unknown>) ?? {}) };
-    const context = body.context === 'WEBVIEW' ? 'WEBVIEW' : 'NATIVE_APP';
+    let context: 'NATIVE_APP' | 'WEBVIEW' = body.context === 'WEBVIEW' ? 'WEBVIEW' : 'NATIVE_APP';
     const session = inspector.session();
     const x = Number(body.x), y = Number(body.y);
     const coordinate = body.coordinate === true && type === 'tap';
+    const settings = reliabilitySettings(body.reliability);
     let target: Target | null = null;
 
     if (coordinate) {
       if (![x, y].every(Number.isFinite) || x < 0 || y < 0 || x >= (screen.width ?? 0) || y >= (screen.height ?? 0)) throw problem('Tap coordinates are outside the screenshot.');
+    } else if (type === 'scroll_to' && body.scrollTarget) {
+      target = explicitScrollTarget(body.scrollTarget, context === 'WEBVIEW');
     } else if (ELEMENT_ACTIONS.includes(type)) {
       target = context === 'WEBVIEW' ? this.#webTarget(body, screen) : await this.#nativeTarget(body, screen, type, args);
     }
+    if (coordinate || !target) context = 'NATIVE_APP';
 
     const secretEnv = type === 'type' && body.secretEnv ? String(body.secretEnv).trim().toUpperCase() : '';
     if (secretEnv && !SECRET_NAME.test(secretEnv)) throw problem('Name the secret like an environment variable, for example VORTEX_SECRET_PASSWORD (A-Z, 0-9 and _).');
     const size = { width: screen.width ?? 0, height: screen.height ?? 0 };
+    const evidence = actionEvidence(screen, recording.pkg, context, Number(body.index), target, settings, !!secretEnv);
     const began = Date.now();
     // Invalidate before the first command. A timeout after delivery must not be retried as another click.
     sessions.snapshot = null;
@@ -71,16 +79,31 @@ export class ActionRunner {
         await enterFrames(session, target.parts.frames ?? []);
       } else await inspector.webToNative();
 
-      const ids = async () => (target ? session.findElements(target.using, target.value) : []);
+      const ids = async () => {
+        const found = target ? await session.findElements(target.using, target.value) : [];
+        if (target) evidence.locator = { using: target.using, value: target.value, matches: found.length, verifiedAt: new Date().toISOString(), positional: target.parts.index !== undefined || target.parts.value?.startsWith('/hierarchy') === true };
+        return found;
+      };
       const one = async () => {
         const found = await ids();
         if (found.length !== 1) throw problem(`Locator matched ${found.length} controls. Choose a unique locator.`, 'NOT_UNIQUE', 409);
+        evidence.locator = { using: target!.using, value: target!.value, matches: found.length, verifiedAt: new Date().toISOString(), positional: target!.parts.index !== undefined || target!.parts.value?.startsWith('/hierarchy') === true };
+        if (!evidence.attributes) {
+          const el = found[0];
+          const [rect, text, id, className] = await Promise.all([session.rect(el), session.text(el), session.attribute(el, context === 'WEBVIEW' ? 'id' : 'resource-id'), session.attribute(el, 'class')]);
+          evidence.attributes = { rect, text: secretEnv ? '[redacted]' : text, id, class: className };
+        }
         return found[0];
       };
 
       if (type === 'tap') {
         if (coordinate) await session.execute('mobile: clickGesture', { x, y });
-        else await session.click(await one());
+        else if (context === 'WEBVIEW') await session.click(await one());
+        else {
+          const node = screen.nodes.find(n => n.index === Number(body.index));
+          if (settings.hideKeyboardBeforeTap !== false && node?.packageName === recording.pkg && await session.execute('mobile: isKeyboardShown')) await session.execute('mobile: hideKeyboard');
+          await session.execute('mobile: clickGesture', { elementId: await one() });
+        }
       } else if (type === 'type' || type === 'clear') {
         const el = await one();
         await session.clear(el);
@@ -116,14 +139,10 @@ export class ActionRunner {
       else if (type === 'sleep') {
         args.ms = Math.max(0, Math.min(30_000, Number(args.ms) || 1500));
         await delay(Number(args.ms));
-      } else if (['assert', 'wait_visible', 'wait_hidden', 'wait_enabled'].includes(type)) await this.#check(session, type, args, ids, context);
+      } else if (['assert', 'wait_visible', 'wait_hidden', 'wait_enabled'].includes(type)) await this.#check(session, type, args, ids, context, settings.timeoutSec);
       else if (type === 'scroll_to') {
-        for (let i = 0; i <= 8; i++) {
-          const found = await ids();
-          if (found.length === 1 && (await session.displayed(found[0]))) break;
-          if (i === 8) throw problem('Control was not found after eight scrolls.', 'NOT_VISIBLE', 422);
-          await session.execute('mobile: scrollGesture', { left: 0, top: Math.round(size.height * 0.2), width: size.width, height: Math.round(size.height * 0.6), direction: 'down', percent: 0.7 });
-        }
+        await scrollUntilVisible(session, target!, screen, args, context === 'WEBVIEW', settings.maxScrolls);
+        await one();
       } else throw problem(`Unsupported action: ${type}`);
       applied = true;
 
@@ -135,6 +154,8 @@ export class ActionRunner {
         target: target ? { kind: target.parts.by === 'id' ? 'testId' : target.parts.by, parts: target.parts } : coordinate ? { kind: 'coordinate' } : null,
         mode: coordinate ? 'coord' : 'name',
         pre: true,
+        reliability: evidence,
+        screen: { name: screenNameFromActivity(screen.activity), activity: screen.activity },
         args,
         ...(coordinate ? { x, y } : {}),
       };
@@ -146,6 +167,10 @@ export class ActionRunner {
       if (body.record !== false) recording.add(step);
       if (context === 'WEBVIEW') await session.switchFrame(null).catch(() => {});
       const fresh = await sessions.capture(body.autoWeb !== false);
+      evidence.after = screenEvidence(fresh, recording.pkg, context);
+      step.screenAfter = { name: screenNameFromActivity(fresh.activity), activity: fresh.activity };
+      evidence.suggestions = navigationSuggestions(screen, fresh, step, recording.pkg);
+      if (body.record !== false) recording.persist();
       return { screen: fresh, steps: recording.steps, durationMs: Date.now() - began, applied: true };
     } catch (e) {
       if (secretEnv) delete args.text;
@@ -174,6 +199,13 @@ export class ActionRunner {
   }
 
   async #nativeTarget(body: Record<string, unknown>, screen: Snapshot, type: string, args: Record<string, unknown>): Promise<Target> {
+    if (type === 'assert' && args.assertion === 'count' && !body.locator) {
+      const node = screen.nodes.find(n => n.index === Number(body.index));
+      if (node) {
+        const value = node.resourceId || node.contentDesc || node.text;
+        if (value) return targetFor({ by: node.resourceId ? 'id' : node.contentDesc ? 'label' : 'text', value }, value);
+      }
+    }
     const picked = body.locator && typeof body.locator === 'object' ? (body.locator as { strategy?: unknown; value?: unknown }) : null;
     let target = await this.#d.locators.nativeTarget(Number(body.index), screen, picked ? { strategy: String(picked.strategy), value: String(picked.value) } : null);
     if (['type', 'clear'].includes(type) && target.parts.by === 'text') throw problem('A text locator changes as soon as the field is edited. Choose the ID, label or XPath for typing.');
@@ -196,12 +228,12 @@ export class ActionRunner {
   }
 
   /** Waits up to 10 s for the condition, as the generated test will; fails the action when it does not hold. */
-  async #check(session: Session, type: string, args: Record<string, unknown>, ids: () => Promise<string[]>, context: string) {
+  async #check(session: Session, type: string, args: Record<string, unknown>, ids: () => Promise<string[]>, context: string, timeoutSec: number) {
     const kind = type === 'wait_visible' ? 'visible' : type === 'wait_hidden' ? 'hidden' : type === 'wait_enabled' ? 'enabled' : String(args.assertion || 'visible');
     if (!ASSERTIONS.includes(kind)) throw problem('Unsupported assertion.');
     if (kind === 'count' && (!Number.isInteger(Number(args.expected)) || Number(args.expected) < 0)) throw problem('Count must be a nonnegative integer.');
     let passed = false;
-    const end = Date.now() + 10_000;
+    const end = Date.now() + timeoutSec * 1000;
     while (!passed && Date.now() < end) {
       const found = await ids();
       if (kind === 'count') passed = found.length === Number(args.expected);

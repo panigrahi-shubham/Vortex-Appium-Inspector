@@ -4,6 +4,14 @@ A separate Appium-only edition of Vortex for Android. Inspect a phone, record ac
 
 [Releases](https://github.com/panigrahi-shubham/Vortex-Appium-Inspector/releases) · [Architecture and limits](docs/ARCHITECTURE.md) · [Real-phone acceptance checklist](docs/ACCEPTANCE.md) · [Changelog](CHANGELOG.md)
 
+## Reliability Engine v2
+
+Open **Actions → Reliability settings** for condition timeouts, stable bounds, bounded scrolling, keyboard handling and navigation suggestions. Suggested checks require your approval. Choose a saved checkpoint under **Playback scope** to replay from step 1 through that checkpoint; results clearly identify partial runs.
+
+New actions retain screen identity, element attributes, locator verification and context. Plain and POM exports embed the reusable Python reliability helpers, compile before export, and save failed-step evidence when run independently with pytest. Missing locators fail instead of silently switching to recorded coordinates. Explicit point taps, swipes and pauses remain explicit. Older recording formats remain readable.
+
+See the [design, compatibility notes and validation](docs/RELIABILITY_V2.md) and the [generated StockPilot example](examples/stockpilot/README.md). This upgrade changes the Appium inspector only; the separate MobileWright recorder is preserved.
+
 ## Workspace controls and tutorial
 
 Open **Tutorial · Start here** at the top of the app for a beginner walkthrough: connect your phone, inspect controls, copy locators, create a file, record actions and assertions, save and replay. Each section has a button that shows the relevant control without performing phone actions.
@@ -21,7 +29,7 @@ The simple inspector follows the text/ID/point approach used by [Maestro selecto
 
 The current source passes its automated suite (99 tests): unit tests, the real HTTP API with real processes, generated tests executed by real pytest, and the UI in a browser.
 
-The full 99-test suite and typecheck pass on Windows. Those automated tests use a simulated phone and a stand-in for Appium. Separate physical-device checks use a Moto G32 running Android 13, StockPilot B2B and IndiaMART, Appium 3.9.0 and UiAutomator2 7.6.2. See [validation results and scope](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
+The pre-upgrade baseline passed all 99 tests. Reliability v2 validation and physical-device results are reported separately in [RELIABILITY_V2.md](docs/RELIABILITY_V2.md). Automated tests use simulated Appium endpoints; WebView replay also runs a real Chromium-backed fixture. Historical device validation is in [VALIDATION.md](docs/VALIDATION.md). The broader [real-phone acceptance checklist](docs/ACCEPTANCE.md) still applies to your own app and device.
 
 ## New in 1.0.0
 

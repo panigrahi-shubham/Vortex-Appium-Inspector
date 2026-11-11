@@ -8,6 +8,7 @@
 
 export const RECORDING_SCHEMA = 'vortex.recording';
 export const RECORDING_VERSION = 1;
+import type { ReliabilityEvidence, ReliabilitySettings } from '../reliability.ts';
 
 export type ActionType =
   | 'tap' | 'longpress' | 'doubletap' | 'swipe' | 'type' | 'scroll_to' | 'press' | 'wait_visible' | 'wait_hidden' | 'sleep' | 'assert'
@@ -80,6 +81,8 @@ export interface WebViewRef {
 }
 
 export interface RecordedEvent {
+  /** Additive v2 evidence; older version-1 recordings remain readable. */
+  reliability?: ReliabilityEvidence;
   id: string;
   seq: number;
   at: string;
@@ -104,6 +107,9 @@ export interface RecordedEvent {
     activity?: string;
     /** checkpoint: picture name */
     name?: string;
+    scrollContainer?: LocatorParts;
+    maxScrolls?: number;
+    percent?: number;
   };
   target: EventTarget | null;
   /** Where the user clicked; used by coordinate fallback. */
@@ -127,6 +133,7 @@ export interface RecordedEvent {
 }
 
 export interface Recording {
+  reliability?: ReliabilitySettings;
   schema: typeof RECORDING_SCHEMA;
   version: number;
   id: string;
@@ -162,6 +169,7 @@ export function screenNameFromActivity(activity: string | null | undefined): str
 
 /** The step objects the browser UI keeps while recording (see public/index.html). */
 export interface UiStep {
+  reliability?: ReliabilityEvidence;
   type: string;
   title?: string;
   target?: { kind: string; expr?: string | null; parts?: LocatorParts; quality?: number; warnings?: string[]; viaAncestor?: boolean; evidence?: TargetEvidence } | null;
@@ -195,6 +203,7 @@ const toAssertion = (s: { assertion: string; expected?: string | number; parts?:
 });
 
 export interface RecordingMeta {
+  reliability?: ReliabilitySettings;
   id: string;
   name: string;
   module: string;
@@ -217,6 +226,7 @@ export function fromUiSteps(steps: UiStep[], meta: RecordingMeta): Recording {
     const rejected = (st.sugg ?? []).filter((s) => !s.on);
     const screen = st.screen ?? { name: 'App', activity: null };
     return {
+      ...(st.reliability ? { reliability: structuredClone(st.reliability) } : {}),
       id: st.id ?? `e${i + 1}`,
       seq: i + 1,
       at: st.at ?? now,
@@ -237,6 +247,9 @@ export function fromUiSteps(steps: UiStep[], meta: RecordingMeta): Recording {
         ...(a.url !== undefined ? { url: String(a.url) } : {}),
         ...(a.activity !== undefined ? { activity: String(a.activity) } : {}),
         ...(a.name !== undefined ? { name: String(a.name) } : {}),
+        ...(a.scrollContainer ? { scrollContainer: a.scrollContainer as LocatorParts } : {}),
+        ...(a.maxScrolls !== undefined ? { maxScrolls: Number(a.maxScrolls) } : {}),
+        ...(a.percent !== undefined ? { percent: Number(a.percent) } : {}),
       },
       target: t
         ? {
@@ -264,6 +277,7 @@ export function fromUiSteps(steps: UiStep[], meta: RecordingMeta): Recording {
     };
   });
   return {
+    ...(meta.reliability ? { reliability: meta.reliability } : {}),
     schema: RECORDING_SCHEMA,
     version: RECORDING_VERSION,
     id: meta.id,
@@ -294,6 +308,9 @@ export function toUiSteps(rec: Recording): UiStep[] {
     if (a.url !== undefined) args.url = a.url;
     if (a.activity !== undefined) args.activity = a.activity;
     if (a.name !== undefined) args.name = a.name;
+    if (a.scrollContainer) args.scrollContainer = a.scrollContainer;
+    if (a.maxScrolls !== undefined) args.maxScrolls = a.maxScrolls;
+    if (a.percent !== undefined) args.percent = a.percent;
     if (e.input?.text !== undefined) args.text = e.input.text;
     if (e.check) {
       args.assertion = e.check.kind;
@@ -304,6 +321,7 @@ export function toUiSteps(rec: Recording): UiStep[] {
       ...e.suggestions.map((p) => ({ assertion: p.kind, expected: p.expected, parts: p.target.parts ?? undefined, kind: p.target.kind, title: p.title, reason: p.reason ?? 'suggested', on: false })),
     ];
     return {
+      ...(e.reliability ? { reliability: structuredClone(e.reliability) } : {}),
       id: e.id,
       at: e.at,
       type: a.type,

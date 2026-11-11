@@ -22,6 +22,7 @@ import { RunIndex } from '../run-index.ts';
 import { journalBegin, journalEnd } from '../run-journal.ts';
 import { diagnoseFailure, type FailureDiagnosis } from '../../reports/diagnosis.ts';
 import { maskSecrets } from '../../reports/secrets.ts';
+import type { ReliabilitySettings } from '../../reliability.ts';
 
 export const PLUGIN_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'python');
 
@@ -29,6 +30,8 @@ export type RunStatus = 'starting' | 'running' | 'passed' | 'skipped' | 'failed'
 export type ErrorCategory = 'import-or-syntax' | 'automation' | 'server-lost' | 'pytest-internal' | 'usage' | null;
 
 export interface RunResult {
+  /** A deliberately partial run, never evidence that later steps passed. */
+  stopAfterStep?: number;
   status: RunStatus;
   category: ErrorCategory;
   summary: string;
@@ -199,7 +202,7 @@ export class PytestRunner {
     return abs;
   }
 
-  async start(o: { testsDir: string; file?: string; files?: string[]; serial: string | null; appPackage: string; timeoutMs: number; reportDir?: string; label?: string; allowAutomationSwitch?: boolean; /** false = not added to the run history (benchmark iterations) */ record?: boolean }): Promise<{ id: string }> {
+  async start(o: { testsDir: string; file?: string; files?: string[]; serial: string | null; appPackage: string; timeoutMs: number; reportDir?: string; label?: string; allowAutomationSwitch?: boolean; stopAfterStep?: number; reliability?: ReliabilitySettings; /** false = not added to the run history (benchmark iterations) */ record?: boolean }): Promise<{ id: string }> {
     const files = o.files?.length ? o.files.map((f) => PytestRunner.resolveTarget(o.testsDir, f)) : [PytestRunner.resolveTestFile(o.testsDir, o.file ?? '')];
     const file = files[0];
     // One file: run from its folder (as before). Several: from the tests folder, so pytest's root is their common parent.
@@ -211,7 +214,8 @@ export class PytestRunner {
     if (!ep) throw new RunError('NO_SERVER', 409, 'No running Appium server. Start or connect one in the Server Manager first.');
 
     const id = `${new Date().toISOString().replace(/[-:]/g, '').replace(/\..*$/, '')}-${randomUUID().slice(0, 6)}`;
-    const label = o.label ?? (files.length === 1 ? path.basename(file, '.py') : `${files.length} Python tests`);
+    const baseLabel = o.label ?? (files.length === 1 ? path.basename(file, '.py') : `${files.length} Python tests`);
+    const label = o.stopAfterStep ? `${baseLabel} (partial through step ${o.stopAfterStep})` : baseLabel;
     const release = this.#d.leases.acquire(o.serial, { kind: 'run', id, label });
     const dir = o.reportDir ? path.join(o.reportDir, `${id}-appium`) : path.join(this.#d.runsDir, `${id}-${label.replace(/[^A-Za-z0-9_.-]+/g, '_')}`.slice(0, 120));
     fs.mkdirSync(dir, { recursive: true });
@@ -252,6 +256,8 @@ export class PytestRunner {
       APP_PACKAGE: o.appPackage,
       VORTEX_ARTIFACTS: dir,
       VORTEX_IDLE_TIMEOUT: String(this.#d.manager.settings.sessionIdleTimeoutSec),
+      VORTEX_STOP_AFTER_STEP: String(o.stopAfterStep || 0),
+      ...(o.reliability ? { VORTEX_STABLE_MS: String(o.reliability.stableMs), VORTEX_MAX_SCROLLS: String(o.reliability.maxScrolls), VORTEX_TIMEOUT: process.env.VORTEX_TIMEOUT || String(o.reliability.timeoutSec) } : {}),
       // WebView steps: the Chromedriver chosen in Server settings (empty = Appium's own)
       ...(this.#d.manager.settings.chromedriverExecutable ? { CHROMEDRIVER_EXECUTABLE: this.#d.manager.settings.chromedriverExecutable } : {}),
       ...(this.#d.manager.settings.chromedriverExecutableDir ? { CHROMEDRIVER_DIR: this.#d.manager.settings.chromedriverExecutableDir } : {}),
@@ -289,6 +295,10 @@ export class PytestRunner {
       resolveExited();
       if (spawnError) this.#append(run, `\n[vortex] ${spawnError.message}\n`);
       const result = await this.#finish(run, code, signal, startedAt, spawnError);
+      if (o.stopAfterStep) {
+        result.stopAfterStep = o.stopAfterStep;
+        result.summary = `Checkpoint playback through step ${o.stopAfterStep} (partial run): ${result.summary}`;
+      }
       handle.complete();
       release();
       // Keep-warm off: a Vortex-owned server is stopped after the run (sessions were closed above).

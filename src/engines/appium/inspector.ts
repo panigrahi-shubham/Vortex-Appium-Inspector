@@ -108,11 +108,13 @@ export class AppiumInspector {
     const o = this.#need();
     if (o.web.context !== 'NATIVE_APP') await this.webToNative();
     try {
-      const [xml, png, win, contexts] = await Promise.all([
+      const [xml, png, win, contexts, activity, pkg] = await Promise.all([
         o.session.pageSource(),
         o.session.screenshotPng(),
         o.session.windowRect().catch(() => null),
         o.session.contexts().catch(() => null),
+        o.session.execute('mobile: getCurrentActivity').catch(() => null),
+        o.session.execute('mobile: getCurrentPackage').catch(() => null),
       ]);
       const ps = parsePageSource(xml);
       // Appium's window rectangle can exclude system bars, while bounds and screenshots use full-screen pixels.
@@ -125,6 +127,9 @@ export class AppiumInspector {
         width: imageSize?.width ?? ps.width ?? win?.width ?? null,
         height: imageSize?.height ?? ps.height ?? win?.height ?? null,
         contexts,
+        activity: typeof activity === 'string' ? activity : null,
+        package: typeof pkg === 'string' ? pkg : null,
+        capturedAt: new Date().toISOString(),
         nodes: ps.nodes.map((n) => ({ index: n.index, parent: n.parent, depth: n.depth, className: n.className, resourceId: n.resourceId, text: n.text, contentDesc: n.contentDesc, packageName: n.packageName, bounds: n.bounds, flags: n.flags, path: n.path })),
       };
     } catch (e) {

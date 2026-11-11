@@ -650,3 +650,7 @@ kbd {
   padding-left: 2px;
   background: #4dd8a566;
 }
+
+.navigation-suggestion { flex-basis: 100%; padding: 8px; margin-top: 6px; border-left: 3px solid var(--accent, #5277ff); font-size: 12px; }
+#steps > p { flex-wrap: wrap; }
+#reliabilitySettings input[type=number] { width: 100%; min-width: 0; }

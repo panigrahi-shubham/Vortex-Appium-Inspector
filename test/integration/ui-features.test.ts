@@ -21,6 +21,53 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const fakeAppium = path.join(root, 'test', 'integration', 'fixtures', 'fake-appium');
 const shots = process.env.VORTEX_UI_SHOTS || '';
 
+test('reliability controls, navigation approval and checkpoint playback work through the recorder UI', { timeout: 90_000 }, async t => {
+  const { page, errors, base } = await open(t, ['--mock'], { VORTEX_TIMEOUT: '1' });
+  await page.waitForFunction(() => document.querySelector('#device option')?.textContent?.includes('mock-device'));
+  await page.locator('#pkg').fill('com.yourname.tradehub');
+  await page.locator('#attach').click(); await noticeHas(page, 'Session attached');
+  await page.locator('#reliabilitySettings > summary').click();
+  await page.locator('#reliabilityTimeout').fill('2');
+  await page.locator('#reliabilityScrolls').fill('3');
+  await page.locator('#reliabilityStable').fill('0');
+  await page.locator('#suggestNavigation').uncheck();
+  await page.locator('[data-global="launch_app"]').click(); await stepCount(page, 1);
+  const state = await (await fetch(base + '/api/status')).json();
+  assert.equal(state.steps[0].reliability.settings.maxScrolls, 3);
+  assert.equal(state.steps[0].reliability.settings.suggestNavigation, false);
+  await page.locator('#suggestNavigation').check();
+  await page.locator('#locatorSearch').fill('home_my_products_button');
+  await page.waitForFunction(() => document.querySelector('#searchResult')?.textContent?.startsWith('1 match'));
+  await page.locator('#locatorSearch').press('Enter');
+  await page.waitForFunction(() => document.querySelector('#selector')?.getAttribute('placeholder') !== undefined && document.querySelector('#locators button') !== null);
+  await page.locator('#tap').click(); await stepCount(page, 2);
+  await page.getByRole('button', { name: 'Add navigation check', exact: true }).click(); await stepCount(page, 3);
+  await page.locator('#scrollTargetBy').selectOption('id');
+  await page.locator('#scrollTargetValue').fill('com.yourname.tradehub:id/myproducts_title_text');
+  await page.locator('#reliableScroll').click(); await stepCount(page, 4);
+  await page.locator('#actionMoreTab').click();
+  await page.locator('#extraValue').fill('product-list');
+  await page.locator('#checkpoint').click(); await stepCount(page, 5);
+  await page.locator('#name').fill('reliability ui');
+  await page.locator('#save').click(); await noticeHas(page, 'Ready to replay');
+  // Launch/activate deliberately preserves app data and navigation state. Prepare Home for this flow.
+  await page.locator('#record').uncheck();
+  await page.locator('[data-global="press"][data-key="BACK"]').click();
+  await noticeHas(page, 'Recording paused.');
+  await page.locator('#record').check();
+  await page.locator('#playbackCheckpoint').selectOption('5');
+  await page.locator('#run').click();
+  await page.waitForFunction(() => document.querySelector('#output')?.textContent?.includes('partial run'), null, { timeout: 30_000 });
+  assert.match(await page.locator('#output').innerText(), /through step 5/);
+  assert.match(await page.locator('#output').innerText(), /^PASSED/);
+  assert.deepEqual(errors, []);
+  await shot(page, 'vortex-reliability-controls.png');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#actionCenter').scrollIntoViewIfNeeded();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile layout fits the viewport');
+  await shot(page, 'vortex-reliability-mobile.png');
+});
+
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const s = net.createServer();

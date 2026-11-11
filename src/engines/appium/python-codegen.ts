@@ -3,6 +3,8 @@
 // validation error with an actionable message: the generator never writes placeholder code.
 
 import { pyStr, uiStr, xpathLiteral } from './native-locators.ts';
+import { guardedStep, pythonReliabilitySettings, RELIABILITY_HELPERS } from './reliability-code.ts';
+import type { ReliabilitySettings } from '../../reliability.ts';
 
 export const PY_REQUIREMENTS = ['Appium-Python-Client==6.0.12', 'pytest==8.4.2'];
 
@@ -25,7 +27,7 @@ export interface RecordedAssertion {
 export interface RecordedStep {
   type: string;
   title?: string;
-  target?: RecordedTarget;
+  target?: RecordedTarget | null;
   x?: number;
   y?: number;
   pre?: boolean;
@@ -229,9 +231,12 @@ function webStepLines(st: RecordedStep, n: number, ctx: Ctx): string[] {
       if (st.secretEnv) ctx.helpers.add('secret');
       out.push(`field = find(driver, ${L})`, 'field.clear()', `field.send_keys(${st.secretEnv ? `secret(${pyStr(st.secretEnv)})` : pyStr(String(a.text ?? ''))})`);
       break;
-    case 'scroll_to':
-      out.push(`driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", find(driver, ${L}))`);
+    case 'scroll_to': {
+      const options = scrollKwargs(a, ctx.pkg, true);
+      if ('error' in options) issue(options.error);
+      else out.push(`scroll_until_visible(driver, ${L}, ${options.code})`);
       break;
+    }
     case 'wait_visible':
       out.push(`find(driver, ${L})`);
       break;
@@ -323,8 +328,8 @@ function stepLines(st: RecordedStep, n: number, ctx: Ctx): string[] {
       } else if (st.type === 'tap') {
         if (st.pre !== false) {
           ctx.helpers.add('find_clickable');
-          out.push(`find_clickable(driver, ${L}).click()`);
-        } else out.push(`driver.find_element(*${L}).click()`);
+          out.push(`tap_element(driver, ${L})`);
+        } else out.push(`tap_element(driver, ${L})`);
       } else {
         ctx.helpers.add('find');
         out.push(`driver.execute_script("mobile: ${gesture}", {"elementId": find(driver, ${L}).id})`);
@@ -360,7 +365,9 @@ function stepLines(st: RecordedStep, n: number, ctx: Ctx): string[] {
       }
       if (!need('scroll to')) break;
       ctx.helpers.add('scroll_into_view');
-      out.push(`scroll_into_view(driver, ${L})`);
+      const options = scrollKwargs(a, ctx.pkg, false);
+      if ('error' in options) ctx.issues.push({ step: n, message: options.error });
+      else out.push(`scroll_until_visible(driver, ${L}, ${options.code})`);
       break;
     }
     case 'press': {
@@ -462,7 +469,7 @@ export const WEBVIEW_HELPER = [
   '    Needs WebView debugging enabled in the app build and a Chromedriver that matches the WebView version',
   '    (CHROMEDRIVER_EXECUTABLE or CHROMEDRIVER_DIR). `url` picks the recorded page when the WebView has several.',
   '    """',
-  '    deadline = time.time() + TIMEOUT',
+  '    deadline = time.time() + float(_reliability_setting(driver, "timeoutSec", "VORTEX_TIMEOUT", TIMEOUT))',
   '    name = None',
   '    while name is None:',
   '        names = [c for c in driver.contexts if c.startswith("WEBVIEW")]',
@@ -485,7 +492,8 @@ export const WEBVIEW_HELPER = [
   '        for css in frames:',
   '            driver.switch_to.frame(WebDriverWait(driver, TIMEOUT).until(EC.presence_of_element_located((AppiumBy.CSS_SELECTOR, css))))',
   '        yield',
-  '    except Exception:',
+  '    except Exception as error:',
+  '        capture_failure(driver, error)',
   '        folder = os.environ.get("VORTEX_ARTIFACTS")  # set by Vortex runs: keep the page for the report',
   '        if folder:',
   '            try:',
@@ -495,7 +503,14 @@ export const WEBVIEW_HELPER = [
   '                pass',
   '        raise',
   '    finally:',
-  '        driver.switch_to.context("NATIVE_APP")',
+  '        import sys',
+  '        failing = sys.exc_info()[0] is not None',
+  '        try:',
+  '            driver.switch_to.context("NATIVE_APP")',
+  '        except Exception as cleanup_error:',
+  '            if not failing:',
+  '                raise',
+  '            print(f"[Vortex cleanup] context restore: {cleanup_error}")',
 ];
 
 /** Chromedriver for WebView steps, from the environment (Vortex sets it from Server settings). */
@@ -510,11 +525,23 @@ export const CHROMEDRIVER_CAPS = [
 export const activityName = (full: string) => (full.includes('/') ? full.split('/').pop()! : full).trim();
 export const checkpointName = (n: string) => String(n || 'checkpoint').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'checkpoint';
 
+/** Shared Plain/POM scroll options; invalid recordings fail generation instead of weakening the bound. */
+export function scrollKwargs(a: { maxScrolls?: unknown; scrollContainer?: unknown; direction?: unknown; percent?: unknown }, pkg: string, web: boolean, limitName = 'max_attempts'): { code: string } | { error: string } {
+  const limit = a.maxScrolls === undefined ? null : Number(a.maxScrolls);
+  const percent = Number(a.percent ?? 0.65), direction = String(a.direction || 'down');
+  if ((limit !== null && (!Number.isInteger(limit) || limit < 1 || limit > 50)) || !Number.isFinite(percent) || percent <= 0 || percent > 1 || !['up', 'down', 'left', 'right'].includes(direction)) return { error: 'Invalid bounded scroll settings.' };
+  const parts = a.scrollContainer as LocatorParts | undefined;
+  if (parts && (web ? !['css', 'xpath'].includes(parts.by) : parts.by === 'css')) return { error: 'Scroll container locator does not match its Native/WebView context.' };
+  const container = parts ? pyLocator(parts, pkg) : null;
+  if (container && 'error' in container) return container;
+  return { code: `${limitName}=${limit ?? 'None'}, container=${container && 'code' in container ? container.code : 'None'}, direction=${pyStr(direction)}, percent=${percent}` };
+}
+
 /** Module-level helpers shared by the Plain file and the POM base page. */
 export const ACTIVITY_HELPER = [
   'def wait_activity(driver, expected):',
   '    """Waits until the foreground activity is `expected` (short ".ui.Name" or full class name)."""',
-  '    deadline = time.time() + TIMEOUT',
+  '    deadline = time.time() + float(_reliability_setting(driver, "timeoutSec", "VORTEX_TIMEOUT", TIMEOUT))',
   '    current = None',
   '    while time.time() < deadline:',
   '        current = driver.current_activity',
@@ -538,10 +565,16 @@ export const CHECKPOINT_HELPER = [
 export const HELPERS: Record<string, string[]> = {
   wait_condition: [
     'def wait_condition(driver, locator, predicate, message):',
+    '    _remember_locator(driver, locator)',
     '    last = {"text": None}',
     '    def matches(d):',
     '        try:',
-    '            el = d.find_element(*locator)',
+    '            found = d.find_elements(*locator)',
+    '            if len(found) > 1:',
+    '                raise AssertionError(f"Locator is not unique: {locator}")',
+    '            if not found:',
+    '                return False',
+    '            el = found[0]',
     '            last["text"] = el.text',
     '            return el.is_displayed() and predicate(el)',
     '        except (NoSuchElementException, StaleElementReferenceException):',
@@ -565,12 +598,12 @@ export const HELPERS: Record<string, string[]> = {
   find: [
     'def find(driver, locator):',
     '    """Waits until the element is visible and returns it."""',
-    '    return WebDriverWait(driver, TIMEOUT).until(EC.visibility_of_element_located(locator), f"not visible: {locator}")',
+    '    return reliable_find(driver, locator)',
   ],
   find_clickable: [
     'def find_clickable(driver, locator):',
     '    """Waits until the element is visible and enabled and returns it."""',
-    '    return WebDriverWait(driver, TIMEOUT).until(EC.element_to_be_clickable(locator), f"not clickable: {locator}")',
+    '    return reliable_find(driver, locator, clickable=True)',
   ],
   wait_gone: [
     'def wait_gone(driver, locator):',
@@ -587,47 +620,37 @@ export const HELPERS: Record<string, string[]> = {
   ],
   tap_or_at: [
     'def tap_or_at(driver, locator, x, y):',
-    '    """Taps by locator; if it is not found or cannot be tapped, taps the position recorded while recording."""',
-    '    try:',
-    '        WebDriverWait(driver, FALLBACK_TIMEOUT).until(EC.element_to_be_clickable(locator)).click()',
-    '    except (TimeoutException, NoSuchElementException, StaleElementReferenceException):',
-    '        driver.execute_script("mobile: clickGesture", {"x": x, "y": y})',
+    '    """Legacy both-format accepted; missing targets fail. Record an explicit point tap for coordinates."""',
+    '    tap_element(driver, locator)',
   ],
   webview: WEBVIEW_HELPER,
   scroll_into_view: [
-    'def scroll_into_view(driver, locator, max_swipes=8):',
-    '    """Swipes up until the element is visible (at most `max_swipes` times)."""',
-    '    size = driver.get_window_size()',
-    '    x = size["width"] // 2',
-    '    for _ in range(max_swipes + 1):',
-    '        found = [e for e in driver.find_elements(*locator) if e.is_displayed()]',
-    '        if found:',
-    '            return found[0]',
-    '        driver.swipe(x, int(size["height"] * 0.7), x, int(size["height"] * 0.3), 400)',
-    '    raise AssertionError(f"{locator} not visible after {max_swipes} swipes")',
+    'def scroll_into_view(driver, locator, max_swipes=None):',
+    '    return scroll_until_visible(driver, locator, max_attempts=max_swipes)',
   ],
 };
 
 // ---- file ----------------------------------------------------------------------------------
 
-export function generatePython(steps: RecordedStep[], opts: { name?: string; appPackage: string; size?: { width: number; height: number } | null; stem?: string; header?: string[] }): { code: string; fileName: string; testName: string } {
+export function generatePython(steps: RecordedStep[], opts: { name?: string; appPackage: string; size?: { width: number; height: number } | null; stem?: string; header?: string[]; reliability?: ReliabilitySettings }): { code: string; fileName: string; testName: string } {
   const name = opts.name || 'recorded flow';
   const ctx: Ctx = { pkg: opts.appPackage, size: opts.size ?? null, helpers: new Set(), imports: new Set(), issues: [] };
   const body: string[] = [];
   let seg: string | null = null;
   steps.forEach((st, i) => {
+    if (st.context !== 'WEBVIEW' && st.target?.parts?.by === 'css') ctx.issues.push({ step: i + 1, message: 'CSS locators require a WebView context.' });
+    const loc = pyLocator(st.target?.parts, opts.appPackage);
     const key = segKey(st);
     if (key !== seg) {
       if (key) {
-        body.push(webviewHeader(st));
+        body.push(`if not begin_step(driver, ${i + 1}, ${pyStr(st.title || st.type)}, ${"code" in loc ? loc.code : "None"}):`, "    return", webviewHeader(st));
         ctx.helpers.add('webview');
         ctx.imports.add('time');
       }
       seg = key;
     }
     const pad = key ? '    ' : '';
-    for (const line of stepLines(st, i + 1, ctx)) {
-      if (body[body.length - 1] === pad + line && !line.startsWith('#')) continue; // identical consecutive checks
+    for (const line of guardedStep(stepLines(st, i + 1, ctx), i + 1, st.title || st.type, 'code' in loc ? loc.code : null)) {
       body.push(pad + line);
     }
   });
@@ -664,7 +687,10 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   lines.push('');
   lines.push('APPIUM_URL = os.environ.get("APPIUM_URL", "http://127.0.0.1:4723")');
   lines.push(`APP_PACKAGE = os.environ.get("APP_PACKAGE", ${pyStr(opts.appPackage)})`);
-  lines.push('TIMEOUT = float(os.environ.get("VORTEX_TIMEOUT", "15"))');
+  lines.push(`TIMEOUT = float(os.environ.get("VORTEX_TIMEOUT", "${opts.reliability?.timeoutSec ?? 15}"))`);
+  lines.push(`DEFAULT_STABLE_MS = ${opts.reliability?.stableMs ?? 150}`);
+  lines.push(`DEFAULT_MAX_SCROLLS = ${opts.reliability?.maxScrolls ?? 8}`);
+  lines.push('', ...RELIABILITY_HELPERS, '');
   if (ctx.helpers.has('tap_or_at')) lines.push('FALLBACK_TIMEOUT = 5  # seconds to wait for the element before tapping the recorded position');
   lines.push('');
   if (usesIdHelper) {
@@ -694,21 +720,23 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   lines.push('        options.udid = os.environ["ANDROID_UDID"]');
   lines.push(...CHROMEDRIVER_CAPS);
   lines.push('    drv = webdriver.Remote(APPIUM_URL, options=options)');
+  lines.push(`    drv._vortex_settings = ${pythonReliabilitySettings(opts.reliability)}`);
   lines.push('    try:');
   lines.push('        # Keep hybrid WebView IDs exact and avoid idle waits on continuously updating views.');
   lines.push('        drv.update_settings({"disableIdLocatorAutocompletion": True, "ignoreUnimportantViews": True, "waitForIdleTimeout": 0})');
   if (steps[0]?.type !== 'launch_app') lines.push('        drv.activate_app(APP_PACKAGE)');
   lines.push('        yield drv');
+  lines.push('    except Exception as error:');
+  lines.push('        capture_failure(drv, error)');
+  lines.push('        raise');
   lines.push('    finally:');
-  lines.push('        try:');
-  lines.push('            drv.terminate_app(APP_PACKAGE)');
-  lines.push('        finally:');
-  lines.push('            drv.quit()  # always end the Appium session');
+  lines.push('        cleanup_session(drv, APP_PACKAGE)');
   lines.push('');
   lines.push('');
   lines.push(`def test_${s}(${body.length ? 'driver' : ''}):`);
   if (!body.length) lines.push('    pytest.skip("Empty starter: record steps in Vortex and save this test before running.")');
-  for (const l of body) lines.push('    ' + l);
+  if (body.length) lines.push('    with recorded_step(driver):');
+  for (const l of body) lines.push('        ' + l);
   lines.push('');
   return { code: lines.join('\n'), fileName: `test_${s}.py`, testName: `test_${s}` };
 }

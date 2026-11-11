@@ -1,0 +1,2 @@
+# Example manifests checksum file bytes; keep them stable across Windows/Linux checkouts.
+examples/** text eol=lf

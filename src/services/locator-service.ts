@@ -18,7 +18,7 @@ import type { Snapshot, Target } from './types.ts';
 const ATTR = { id: 'resource-id', label: 'content-desc', text: 'text' } as const;
 
 /** The device lookup for a stored locator. Repeated values are addressed by position. */
-function targetFor(parts: { by: 'id' | 'label' | 'text' | 'xpath'; value: string; index?: number }, title: string): Target {
+export function targetFor(parts: { by: 'id' | 'label' | 'text' | 'xpath'; value: string; index?: number }, title: string): Target {
   if (parts.by === 'xpath') return { using: 'xpath', value: parts.value, parts, title };
   if (parts.index !== undefined) return { using: 'xpath', value: `(//*[@${ATTR[parts.by]}=${xpathLiteral(parts.value)}])[${parts.index + 1}]`, parts, title };
   if (parts.by === 'text') return { using: '-android uiautomator', value: `new UiSelector().text(${JSON.stringify(parts.value)})`, parts, title };
@@ -65,6 +65,7 @@ export class LocatorService {
       if (!cand) throw problem('Choose one of the locators listed for this control.');
       const parts = partsForCandidate(cand, node, ps);
       if (!parts) throw problem('That locator cannot be replayed as an element lookup. Use Coordinate tap for a point tap.');
+      if (cand.localMatches !== 1) throw problem('Choose a locator unique on this captured screen.', 'NOT_UNIQUE', 409);
       return targetFor(parts, n.text || n.contentDesc || parts.value);
     }
     const fields = [['resourceId', 'id'], ['contentDesc', 'label'], ['text', 'text']] as const;
@@ -73,7 +74,7 @@ export class LocatorService {
       const value = n[field];
       if (!value) continue;
       const matches = screen.nodes.filter((x) => x[field] === value);
-      return targetFor({ by, value, ...(matches.length > 1 ? { index: matches.findIndex((x) => x.index === index) } : {}) }, n.text || n.contentDesc || value);
+      if (matches.length === 1) return targetFor({ by, value }, n.text || n.contentDesc || value);
     }
     // No id, label or usable text. Prefer a locator anchored to a nearby label over the absolute path.
     const { candidates } = await this.ranked(index);

@@ -114,6 +114,7 @@ const routes: Route[] = [
   { method: 'POST', path: '/api/recording/delete', exclusive: true, run: (b) => app.deleteStep(b.index) },
   { method: 'POST', path: '/api/recording/move', exclusive: true, run: (b) => app.moveStep(b.from, b.to) },
   { method: 'POST', path: '/api/recording/edit', exclusive: true, run: (b) => app.editStep(b.index, b.value) },
+  { method: 'POST', path: '/api/recording/approve-suggestion', exclusive: true, run: (b) => app.recording.approveSuggestion(b.index, b.id) },
 
   // Saved tests
   { method: 'POST', path: '/api/generate', exclusive: true, run: (b) => app.build(b) },
@@ -121,7 +122,7 @@ const routes: Route[] = [
   { method: 'POST', path: '/api/new', exclusive: true, run: (b) => app.project.create(b) },
   { method: 'POST', path: '/api/load', exclusive: true, run: (b) => app.load({ module: b.module, case: b.case }) },
   { method: 'POST', path: '/api/screen-page', exclusive: true, run: (b) => app.screenPage(b) },
-  { method: 'POST', path: '/api/run', exclusive: true, run: (b) => app.run({ module: b.module, case: b.case }) },
+  { method: 'POST', path: '/api/run', exclusive: true, run: (b) => app.run({ module: b.module, case: b.case, stopAfterStep: b.stopAfterStep }) },
   { method: 'POST', path: '/api/cancel', exclusive: true, run: (b) => app.runner.cancel(String(b.id)) },
   { method: 'POST', path: '/api/repair/suggest', exclusive: true, run: (b) => app.repairSuggest(b) },
   { method: 'POST', path: '/api/repair/apply', exclusive: true, run: (b) => app.repairApply(b) },

@@ -12,7 +12,8 @@ import { afterScreen, dataKey, PageRegistry, snakeW, type MethodKind, type PageL
 import { describeEvent, isCoordinateEvent, type GeneratedFile, type GenerationIssue } from '../../model/output.ts';
 import type { AssertionKind, LocatorParts, Recording } from '../../model/recording.ts';
 import { pyStr } from './native-locators.ts';
-import { ACTIVITY_HELPER, activityName, CHECKPOINT_HELPER, checkpointName, CHROMEDRIVER_CAPS, CodegenValidationError, generatePython, KEYCODES, PY_REQUIREMENTS, pyLocator, segKey, snake, WEBVIEW_HELPER, webviewHeader, type RecordedStep } from './python-codegen.ts';
+import { guardedStep, pythonReliabilitySettings, RELIABILITY_HELPERS } from './reliability-code.ts';
+import { ACTIVITY_HELPER, activityName, CHECKPOINT_HELPER, checkpointName, CHROMEDRIVER_CAPS, CodegenValidationError, generatePython, KEYCODES, PY_REQUIREMENTS, pyLocator, scrollKwargs, segKey, snake, WEBVIEW_HELPER, webviewHeader, type RecordedStep } from './python-codegen.ts';
 
 export const PY_FORMAT = 'vortex-appium-python v1';
 
@@ -37,6 +38,9 @@ export function recordingToPySteps(rec: Recording): RecordedStep[] {
     if (a.url !== undefined) args.url = a.url;
     if (a.activity !== undefined) args.activity = a.activity;
     if (a.name !== undefined) args.name = a.name;
+    if (a.scrollContainer) args.scrollContainer = a.scrollContainer;
+    if (a.maxScrolls !== undefined) args.maxScrolls = a.maxScrolls;
+    if (a.percent !== undefined) args.percent = a.percent;
     if (e.input?.text !== undefined) args.text = e.input.text;
     if (e.check) {
       args.assertion = e.check.kind;
@@ -95,6 +99,7 @@ export function generatePythonPlainFiles(rec: Recording, o: PyOptions): { files:
       size: o.size,
       stem: pyStem(o),
       header: [`Format: ${PY_FORMAT} (Plain). Recording: ${rec.id}.`],
+      reliability: rec.reliability,
     });
     return { files: [{ path: `appium/plain/${g.fileName}`, content: g.code, framework: 'appium', variant: 'plain', role: 'entry' }], issues: [] };
   } catch (e) {
@@ -140,6 +145,8 @@ const BASE_PAGE = (pkg: string, name: string, web: boolean) => [
   'FALLBACK_TIMEOUT = 5  # seconds to wait for the element before tapping the recorded position',
   '',
   '',
+  ...RELIABILITY_HELPERS,
+  '',
   'def ID(name):',
   '    """Full resource-id of an element in the app under test."""',
   '    return f"{APP_PACKAGE}:id/{name}"',
@@ -155,28 +162,21 @@ const BASE_PAGE = (pkg: string, name: string, web: boolean) => [
   'class BasePage:',
   '    def __init__(self, driver):',
   '        self.driver = driver',
+  '        self.timeout = float(_reliability_setting(driver, "timeoutSec", "VORTEX_TIMEOUT", TIMEOUT))',
   '',
   '    # ---- finding ----',
   '    def find(self, locator):',
   '        """Waits until the element is visible and returns it."""',
-  '        return WebDriverWait(self.driver, TIMEOUT).until(EC.visibility_of_element_located(locator), f"not visible: {locator}")',
+  '        return reliable_find(self.driver, locator)',
   '',
   '    def find_clickable(self, locator):',
   '        """Waits until the element is visible and enabled and returns it."""',
-  '        return WebDriverWait(self.driver, TIMEOUT).until(EC.element_to_be_clickable(locator), f"not clickable: {locator}")',
+  '        return reliable_find(self.driver, locator, clickable=True)',
   '',
   '    # ---- actions ----',
   '    def tap(self, locator, fallback=None, check_first=True):',
-  '        """Taps the element. With `fallback=(x, y)`, taps that recorded position if the element is not found or cannot be tapped."""',
-  '        if fallback is not None:',
-  '            try:',
-  '                WebDriverWait(self.driver, FALLBACK_TIMEOUT).until(EC.element_to_be_clickable(locator)).click()',
-  '            except (TimeoutException, NoSuchElementException, StaleElementReferenceException):',
-  '                self.driver.execute_script("mobile: clickGesture", {"x": fallback[0], "y": fallback[1]})',
-  '        elif check_first:',
-  '            self.find_clickable(locator).click()',
-  '        else:',
-  '            self.driver.find_element(*locator).click()',
+  '        """No silent coordinate fallback; use an explicit recorded point tap for that intent."""',
+  '        tap_element(self.driver, locator)',
   '',
   '    def long_press(self, locator):',
   '        self.driver.execute_script("mobile: longClickGesture", {"elementId": self.find(locator).id})',
@@ -189,36 +189,30 @@ const BASE_PAGE = (pkg: string, name: string, web: boolean) => [
   '        field.clear()',
   '        field.send_keys(value)',
   '',
-  '    def scroll_into_view(self, locator, max_swipes=8):',
-  '        """Swipes up until the element is visible (at most `max_swipes` times); in a WebView, scrolls the page."""',
-  '        if self.driver.current_context != "NATIVE_APP":',
-  '            el = WebDriverWait(self.driver, TIMEOUT).until(EC.presence_of_element_located(locator), f"not found: {locator}")',
-  '            self.driver.execute_script("arguments[0].scrollIntoView({block: \'center\'})", el)',
-  '            return el',
-  '        size = self.driver.get_window_size()',
-  '        x = size["width"] // 2',
-  '        for _ in range(max_swipes + 1):',
-  '            found = [e for e in self.driver.find_elements(*locator) if e.is_displayed()]',
-  '            if found:',
-  '                return found[0]',
-  '            self.driver.swipe(x, int(size["height"] * 0.7), x, int(size["height"] * 0.3), 400)',
-  '        raise AssertionError(f"{locator} not visible after {max_swipes} swipes")',
+  '    def scroll_into_view(self, locator, max_swipes=None, **options):',
+  '        return scroll_until_visible(self.driver, locator, max_attempts=max_swipes, **options)',
   '',
   '    # ---- checks ----',
   '    def expect_condition(self, locator, predicate):',
+  '        _remember_locator(self.driver, locator)',
   '        def matches(driver):',
   '            try:',
-  '                el = driver.find_element(*locator)',
+  '                found = driver.find_elements(*locator)',
+  '                if len(found) > 1:',
+  '                    raise AssertionError(f"Locator is not unique: {locator}")',
+  '                if not found:',
+  '                    return False',
+  '                el = found[0]',
   '                return el.is_displayed() and predicate(el)',
   '            except (NoSuchElementException, StaleElementReferenceException):',
   '                return False',
-  '        WebDriverWait(self.driver, TIMEOUT).until(matches, f"expected state not reached: {locator}")',
+  '        WebDriverWait(self.driver, self.timeout).until(matches, f"expected state not reached: {locator}")',
   '',
   '    def expect_visible(self, locator):',
   '        self.find(locator)',
   '',
   '    def expect_hidden(self, locator):',
-  '        WebDriverWait(self.driver, TIMEOUT).until(EC.invisibility_of_element_located(locator), f"still visible: {locator}")',
+  '        WebDriverWait(self.driver, self.timeout).until(EC.invisibility_of_element_located(locator), f"still visible: {locator}")',
   '',
   '    def expect_enabled(self, locator):',
   '        self.expect_condition(locator, lambda el: el.is_enabled())',
@@ -244,7 +238,7 @@ const BASE_PAGE = (pkg: string, name: string, web: boolean) => [
   '    def expect_count(self, locator, expected):',
   '        """Waits until exactly `expected` elements match."""',
   '        try:',
-  '            WebDriverWait(self.driver, TIMEOUT).until(lambda d: len(d.find_elements(*locator)) == expected)',
+  '            WebDriverWait(self.driver, self.timeout).until(lambda d: len(d.find_elements(*locator)) == expected)',
   '        except TimeoutException:',
   '            raise AssertionError(f"expected {expected} elements for {locator}, found {len(self.driver.find_elements(*locator))}") from None',
 ];
@@ -304,6 +298,7 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
       return `${pageVar(R!.page)}.${m}(${args.join(', ')})`;
     };
     const a = e.action;
+    if (!isWeb && T?.parts?.by === 'css') issue('CSS locators require a WebView context.');
     if (isWeb && ['longpress', 'doubletap', 'swipe', 'press', 'sleep'].includes(a.type)) issue(`"${a.type}" is not available for WebView elements: record it on the native screen instead`);
     else switch (a.type) {
       case 'tap':
@@ -364,7 +359,9 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
           break;
         }
         if (!need()) break;
-        out.push(call('scroll_to', []));
+        const options = scrollKwargs(a, pkg, isWeb, 'max_swipes');
+        if ('error' in options) { issue(options.error); break; }
+        out.push(call('scroll_to', [options.code]));
         break;
       case 'press': {
         const key = String(a.key ?? '').toUpperCase();
@@ -443,13 +440,12 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
     if ((e.observations.settleMs ?? 0) > 3000) out.push(`# the screen took about ${((e.observations.settleMs ?? 0) / 1000).toFixed(1)} s to settle after this step`);
     const key = segKey(e);
     if (key !== seg) {
-      if (key) body.push(webviewHeader(e));
+      if (key) body.push(`if not begin_step(driver, ${n}, ${pyStr(e.title || a.type)}, ${R ? `${pageVar(R.page)}.${constName(R.loc)}` : 'None'}):`, '    return', webviewHeader(e));
       seg = key;
     }
     if (key) usesWeb = true;
-    for (const raw of out) {
+    for (const raw of guardedStep(out, n, e.title || a.type, R ? `${pageVar(R.page)}.${constName(R.loc)}` : null)) {
       const l = (key ? '    ' : '') + raw;
-      if (body[body.length - 1] === l && !raw.startsWith('#')) continue;
       body.push(l);
     }
   }
@@ -509,7 +505,7 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
       else if (m.kind === 'longpress') lines.push(`    def ${name}(self):`, `        self.long_press(${C})`);
       else if (m.kind === 'doubletap') lines.push(`    def ${name}(self):`, `        self.double_tap(${C})`);
       else if (m.kind === 'fill') lines.push(`    def ${name}(self, value):`, `        self.fill(${C}, value)`);
-      else lines.push(`    def ${name}(self):`, `        self.scroll_into_view(${C})`);
+      else lines.push(`    def ${name}(self, max_swipes=None, **options):`, `        return self.scroll_into_view(${C}, max_swipes, **options)`);
     }
     if (!consts.length && !p.methods.length) lines.push('    pass');
     addPageFile(`pages/${pkgName}/${pageModule(p)}.py`, lines);
@@ -548,7 +544,7 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
         ]
       : []),
     '',
-    `from ${pkgName}.base_page import APP_PACKAGE  # noqa: E402`,
+    `from ${pkgName}.base_page import APP_PACKAGE, cleanup_session, capture_failure  # noqa: E402`,
     ...fixturePages.map((p) => `from ${pkgName}.${pageModule(p)} import ${pageClass(p)}  # noqa: E402`),
     '',
     'APPIUM_URL = os.environ.get("APPIUM_URL", "http://127.0.0.1:4723")',
@@ -567,16 +563,17 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
     '        options.udid = os.environ["ANDROID_UDID"]',
     ...CHROMEDRIVER_CAPS,
     '    drv = webdriver.Remote(APPIUM_URL, options=options)',
+    `    drv._vortex_settings = ${pythonReliabilitySettings(rec.reliability)}`,
     '    try:',
     '        # Keep hybrid WebView IDs exact and avoid idle waits on continuously updating views.',
     '        drv.update_settings({"disableIdLocatorAutocompletion": True, "ignoreUnimportantViews": True, "waitForIdleTimeout": 0})',
     ...(rec.events[0]?.action.type === 'launch_app' ? [] : ['        drv.activate_app(APP_PACKAGE)']),
     '        yield drv',
+    '    except Exception as error:',
+    '        capture_failure(drv, error)',
+    '        raise',
     '    finally:',
-    '        try:',
-    '            drv.terminate_app(APP_PACKAGE)',
-    '        finally:',
-    '            drv.quit()  # always end the Appium session',
+    '        cleanup_session(drv, APP_PACKAGE)',
     ...fixturePages.flatMap((p) => ['', '', '@pytest.fixture', `def ${pageVar(p)}(driver):`, `    return ${pageClass(p)}(driver)`]),
   ]);
 
@@ -594,14 +591,16 @@ export function generatePythonPom(rec: Recording, o: PyOptions): { files: Genera
   if (!body.length) test.push('import pytest', '');
   if (imports.has('time')) test.push('import time', '');
   const dataImports = ['DATA', 'secret'].filter((x) => imports.has(x));
-  const baseImports = ['APP_PACKAGE', 'checkpoint', 'wait_activity'].filter((x) => imports.has(x));
+  const baseImports = ['begin_step', 'recorded_step', 'ID', ...['APP_PACKAGE', 'checkpoint', 'wait_activity'].filter((x) => imports.has(x))];
+  test.push('from appium.webdriver.common.appiumby import AppiumBy', '');
   if (usesWeb) baseImports.push('webview');
   if (baseImports.length) test.push(`from ${pkgName}.base_page import ${baseImports.join(', ')}`);
   if (dataImports.length) test.push(`from ${dataPkg}.data import ${dataImports.join(', ')}`);
   if (baseImports.length || dataImports.length) test.push('');
   test.push('', `def test_${stem}_pom(${body.length ? ['driver', ...used.map(pageVar)].join(', ') : ''}):`);
   if (!body.length) test.push('    pytest.skip("Empty starter: record steps in Vortex and save this test before running.")');
-  for (const l of body) test.push('    ' + l);
+  else test.push('    with recorded_step(driver):');
+  for (const l of body) test.push('        ' + l);
   files.push({ path: `appium/pom/tests/test_${stem}_pom.py`, content: test.join('\n') + '\n', framework: 'appium', variant: 'pom', role: 'entry' });
   if (!lib) return { files, issues };
   const library: SharedLibrary = {

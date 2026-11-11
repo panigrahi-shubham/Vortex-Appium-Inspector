@@ -9,6 +9,8 @@ import type { AppiumInspector } from '../engines/appium/inspector.ts';
 import { parsePageSource } from '../engines/appium/page-source.ts';
 import type { PytestRunner, RunResult } from '../engines/appium/pytest-runner.ts';
 import { SHARED_PAGES_DIR } from '../engines/appium/python-project.ts';
+import { validatePythonFiles } from '../engines/appium/python-validation.ts';
+import { reliabilitySettings, type ReliabilitySettings } from '../reliability.ts';
 import { countMatches, suggestRepairs } from '../engines/appium/repair.ts';
 import { buildScreenPage } from '../engines/appium/screen-page.ts';
 import { fromUiSteps, slug, type LocatorParts, type UiStep } from '../model/recording.ts';
@@ -29,6 +31,7 @@ export interface ProjectDeps {
 }
 
 interface BuildInput {
+  reliability?: ReliabilitySettings;
   steps: UiStep[];
   recordingId: string;
   name: string;
@@ -57,11 +60,12 @@ export class ProjectService {
   // ---- generate and save -----------------------------------------------------------------------
 
   #build(input: BuildInput) {
-    const recording = fromUiSteps(input.steps, { id: input.recordingId, name: input.name, module: input.ref.module, appPackage: input.pkg, serial: input.serial, screen: input.size, version: VERSION });
+    const recording = fromUiSteps(input.steps, { id: input.recordingId, name: input.name, module: input.ref.module, appPackage: input.pkg, serial: input.serial, screen: input.size, version: VERSION, reliability: input.reliability });
     const library = input.sharedPages && input.mode !== 'plain' ? readLibrary(this.#d.outDir, input.pkg) : null;
     const built = buildCase(recording, input.ref, { frameworks: ['appium'], mode: input.mode, target: input.target, size: input.size, library });
     if (built.issues.length) throw Object.assign(problem('Fix the recording before generation.', 'VALIDATION', 422), { issues: built.issues });
-    return { ref: input.ref, recording, mode: input.mode, ...built };
+    const validation = validatePythonFiles([...built.files, ...(built.shared?.files ?? [])]);
+    return { ref: input.ref, recording, mode: input.mode, validation, ...built };
   }
 
   #save(input: BuildInput) {
@@ -78,6 +82,7 @@ export class ProjectService {
     if (!recording.steps.length) throw problem('Record at least one step before saving.');
     const name = String(body.name || 'recorded flow');
     return {
+      reliability: reliabilitySettings(body.reliability ?? recording.steps[0]?.reliability?.settings),
       steps: recording.steps,
       recordingId: recording.recordingId,
       name,
@@ -134,18 +139,23 @@ export class ProjectService {
     const loaded = readCaseRecording(outDir, { module: String(body.module), case: String(body.case) });
     if (inspector.status().open && recording.pkg !== loaded.recording.app.package) throw problem('Detach the current session before loading a different app.', 'RECORDING_TARGET', 409);
     recording.replace({ steps: loaded.steps, pkg: loaded.recording.app.package, recordingId: loaded.recording.id, recordedSize: loaded.recording.device.screen });
-    return { steps: recording.steps, name: loaded.recording.name, module: loaded.recording.module, pkg: recording.pkg, mode: loaded.manifest?.mode || 'plain', sharedPages: usesSharedPages(loaded.manifest ?? null) };
+    return { steps: recording.steps, reliability: loaded.recording.reliability ?? reliabilitySettings(null), name: loaded.recording.name, module: loaded.recording.module, pkg: recording.pkg, mode: loaded.manifest?.mode || 'plain', sharedPages: usesSharedPages(loaded.manifest ?? null) };
   }
 
   // ---- replay ------------------------------------------------------------------------------------
 
-  async run(body: { module: unknown; case: unknown }) {
+  async run(body: { module: unknown; case: unknown; stopAfterStep?: unknown }) {
     const { runner, session, recording, outDir } = this.#d;
     if (runner.active().length) throw problem('A test is already running.', 'RUN_ACTIVE', 409);
     const ref = { module: String(body.module), case: String(body.case) };
     const dir = caseDir(outDir, ref), manifest = readManifest(dir);
     if (!manifest) throw problem('Save this test first.');
-    if (!readCaseRecording(outDir, ref).steps.length) throw problem('This file is an empty starter. Record at least one step and Save test before replaying.', 'EMPTY_TEST', 409);
+    const saved = readCaseRecording(outDir, ref);
+    if (!saved.steps.length) throw problem('This file is an empty starter. Record at least one step and Save test before replaying.', 'EMPTY_TEST', 409);
+    if (saved.recording.app.package !== recording.pkg) throw problem('Attach the app this saved recording belongs to before replay.', 'RECORDING_TARGET', 409);
+    const stopAfterStep = body.stopAfterStep === undefined || body.stopAfterStep === null || body.stopAfterStep === '' ? 0 : Number(body.stopAfterStep);
+    if (stopAfterStep && (!Number.isInteger(stopAfterStep) || saved.steps[stopAfterStep - 1]?.type !== 'checkpoint')) throw problem('Choose a saved checkpoint for incremental playback.', 'BAD_CHECKPOINT', 400);
+    if (!Number.isFinite(stopAfterStep) || stopAfterStep < 0) throw problem('Invalid checkpoint.', 'BAD_CHECKPOINT', 400);
     if (!session.serial || !recording.pkg) throw problem('Connect a phone and app first.');
     const entries = Object.entries(manifest.files).filter(([, v]) => v.role === 'entry' && v.discoverable);
     if (Object.keys(manifest.files).some((p) => fs.existsSync(path.join(dir, p + '.vortex-new')))) throw problem('This case has edited files awaiting review. Resolve .vortex-new files before replay.', 'PENDING_REVIEW', 409);
@@ -154,9 +164,10 @@ export class ProjectService {
       if (pending.length) throw problem(`The shared page library has edited files awaiting review: ${pending.join(', ')}. Merge or replace them, delete the .vortex-new files, then replay.`, 'PENDING_REVIEW', 409);
     }
     if (entries.length !== 1) throw problem('The saved test needs exactly one active entry file.');
+    if (stopAfterStep && !fs.readFileSync(path.join(dir, entries[0][0]), 'utf8').includes(`begin_step(driver, ${stopAfterStep},`)) throw problem('This saved Python file predates checkpoint playback. Load the recording and save it with Reliability v2 first.', 'CHECKPOINT_UNSUPPORTED', 409);
     // The recorder session is explicitly handed off to pytest; the Appium server stays warm.
     await session.stop();
-    const started = await runner.start({ testsDir: outDir, file: path.relative(outDir, path.join(dir, entries[0][0])), serial: session.serial, appPackage: recording.pkg, timeoutMs: 15 * 60_000 });
+    const started = await runner.start({ testsDir: outDir, file: path.relative(outDir, path.join(dir, entries[0][0])), serial: session.serial, appPackage: saved.recording.app.package, timeoutMs: 15 * 60_000, stopAfterStep, reliability: saved.recording.reliability });
     this.#runRefs.set(started.id, ref);
     const pkg = recording.pkg;
     void runner.wait(started.id).then((result) => this.#remember(started.id, ref, pkg, result)).catch(() => {});
@@ -189,7 +200,7 @@ export class ProjectService {
       const steps = readCaseRecording(this.#d.outDir, ref).steps;
       const failed = this.#failedStepNumber(result);
       let reached: number;
-      if (result.status === 'passed') reached = steps.length;
+      if (result.status === 'passed') reached = result.stopAfterStep || steps.length;
       else if (result.status === 'failed' && failed) reached = failed.number - 1;
       else return; // cancelled, timed out, import error: nothing is known about the locators
       const native = (s: UiStep): LocatorParts | null => (s.context !== 'WEBVIEW' && s.target?.parts && s.target.kind !== 'coordinate' ? (s.target.parts as LocatorParts) : null);
@@ -313,6 +324,7 @@ export class ProjectService {
       if (anchor && label) anchors.set(n.index, { value: anchor.value, label: label[1] ?? label[2] ?? '' });
     }
     const page = buildScreenPage(ps, { name: String(body.name || 'screen').slice(0, 60), pkg: recording.pkg }, anchors);
+    validatePythonFiles([{ path: page.fileName, content: page.content }]);
     if (!body.save) return { ...page, saved: null, conflict: false };
     if (!page.elements.length) throw problem('No control with a stable locator was found on this screen, so there is nothing to save.');
     const dir = path.join(outDir, 'screens'), file = path.join(dir, page.fileName);

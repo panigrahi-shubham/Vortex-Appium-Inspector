@@ -1,0 +1,1010 @@
+{
+  "reliability": {
+    "timeoutSec": 10,
+    "maxScrolls": 8,
+    "stableMs": 150,
+    "suggestNavigation": true
+  },
+  "schema": "vortex.recording",
+  "version": 1,
+  "id": "stockpilot-catalog-search",
+  "name": "StockPilot catalog search",
+  "module": "stockpilot",
+  "createdAt": "2026-11-11T15:11:22.645Z",
+  "updatedAt": "2026-11-11T15:11:22.645Z",
+  "generator": {
+    "name": "vortex-android-recorder",
+    "version": "1.0.0"
+  },
+  "app": {
+    "package": "com.stockpilot.b2b"
+  },
+  "device": {
+    "serial": null,
+    "screen": {
+      "width": 1080,
+      "height": 2400
+    }
+  },
+  "events": [
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 15,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "445c8215a9a2e84900e9",
+          "token": "sample-before-1",
+          "package": "com.motorola.launcher3",
+          "activity": "com.android.launcher3.CustomizationPanelLauncher",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:01:41.725Z"
+        },
+        "after": {
+          "identity": "02f34e179e1da0d8cd70",
+          "token": "sample-after-1",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:02:13.599Z"
+        },
+        "attributes": null,
+        "locator": null,
+        "suggestions": [
+          {
+            "id": "e1-suggestion-1",
+            "kind": "activity",
+            "context": "NATIVE_APP",
+            "expected": "com.stockpilot.b2b/.MainActivity",
+            "title": ".MainActivity",
+            "reason": "The captured screen identity changed. Confirm the expected destination."
+          }
+        ]
+      },
+      "id": "e1",
+      "seq": 1,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "launch app",
+      "screen": {
+        "name": "CustomizationPanelLauncher",
+        "activity": "com.android.launcher3.CustomizationPanelLauncher"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "launch_app"
+      },
+      "target": null,
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "07e11fa5323328f9ad86",
+          "token": "sample-before-2",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:44.351Z"
+        },
+        "after": {
+          "identity": "0b1061e78a01ce60beb3",
+          "token": "sample-after-2",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:47.095Z"
+        },
+        "attributes": {
+          "class": "android.widget.EditText",
+          "id": "home-search-bar",
+          "label": "Search products",
+          "flags": {
+            "clickable": true,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": false,
+            "focusable": true,
+            "scrollable": false,
+            "long-clickable": false,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 40,
+            "y": 288,
+            "w": 1000,
+            "h": 120
+          },
+          "text": ""
+        },
+        "locator": {
+          "using": "id",
+          "value": "home-search-bar",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:03:44.558Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e2",
+      "seq": 2,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "Search products",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "tap"
+      },
+      "target": {
+        "kind": "testId",
+        "parts": {
+          "by": "id",
+          "value": "home-search-bar"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "e0ef46123da34cecf5b6",
+          "token": "sample-before-3",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:49.193Z"
+        },
+        "after": {
+          "identity": "44e293a6166304d516b1",
+          "token": "sample-after-3",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:51.506Z"
+        },
+        "attributes": {
+          "class": "android.widget.EditText",
+          "id": "catalog-search-input",
+          "label": "Search products",
+          "flags": {
+            "clickable": true,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": true,
+            "focusable": true,
+            "scrollable": false,
+            "long-clickable": true,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 138,
+            "y": 261,
+            "w": 869,
+            "h": 108
+          },
+          "text": "Search products, brands, SKU…"
+        },
+        "locator": {
+          "using": "id",
+          "value": "catalog-search-input",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:03:49.333Z",
+          "positional": false
+        },
+        "suggestions": [
+          {
+            "id": "e3-suggestion-1",
+            "kind": "visible",
+            "context": "NATIVE_APP",
+            "parts": {
+              "by": "id",
+              "value": "product-stock-SKU-10002"
+            },
+            "title": "Only 6 left",
+            "reason": "The captured screen identity changed. Confirm the expected destination."
+          }
+        ]
+      },
+      "id": "e3",
+      "seq": 3,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "Search products, brands, SKU…",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "type"
+      },
+      "target": {
+        "kind": "testId",
+        "parts": {
+          "by": "id",
+          "value": "catalog-search-input"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": {
+        "text": "ghee"
+      },
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "44e293a6166304d516b1",
+          "token": "sample-before-4",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:51.506Z"
+        },
+        "after": {
+          "identity": "b4c612567e541196ae9f",
+          "token": "sample-after-4",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:03:53.545Z"
+        },
+        "attributes": {
+          "class": "android.widget.EditText",
+          "id": "catalog-search-input",
+          "label": "Search products",
+          "flags": {
+            "clickable": true,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": true,
+            "focusable": true,
+            "scrollable": false,
+            "long-clickable": true,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 138,
+            "y": 261,
+            "w": 804,
+            "h": 108
+          },
+          "text": "ghee"
+        },
+        "locator": {
+          "using": "id",
+          "value": "catalog-search-input",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:03:51.634Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e4",
+      "seq": 4,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "ghee",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "assert"
+      },
+      "target": {
+        "kind": "testId",
+        "parts": {
+          "by": "id",
+          "value": "catalog-search-input"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": {
+        "kind": "text",
+        "expected": "ghee"
+      },
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 15,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "ddc9256c100e6780c7c3",
+          "token": "sample-before-5",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:04:16.718Z"
+        },
+        "after": {
+          "identity": "523d1e32a6fde0f08a67",
+          "token": "sample-after-5",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:04:33.717Z"
+        },
+        "attributes": {
+          "class": "android.widget.Button",
+          "id": "product-card-SKU-10065-open",
+          "label": "DailyDew Pure Cow Ghee",
+          "flags": {
+            "clickable": true,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": false,
+            "focusable": true,
+            "scrollable": false,
+            "long-clickable": false,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 73,
+            "y": 696,
+            "w": 699,
+            "h": 358
+          },
+          "text": ""
+        },
+        "locator": {
+          "using": "id",
+          "value": "product-card-SKU-10065-open",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:04:31.196Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e5",
+      "seq": 5,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "DailyDew Pure Cow Ghee",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "tap"
+      },
+      "target": {
+        "kind": "testId",
+        "parts": {
+          "by": "id",
+          "value": "product-card-SKU-10065-open"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "573f45ceccd64f707196",
+          "token": "sample-before-6",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:04:35.790Z"
+        },
+        "after": {
+          "identity": "573f45ceccd64f707196",
+          "token": "sample-after-6",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:05:08.154Z"
+        },
+        "attributes": {
+          "class": "android.widget.TextView",
+          "id": "product-sku",
+          "label": "",
+          "flags": {
+            "clickable": false,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": false,
+            "focusable": false,
+            "scrollable": false,
+            "long-clickable": false,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 40,
+            "y": 1496,
+            "w": 657,
+            "h": 48
+          },
+          "text": "SKU SKU-10065 · EAN 8904220065172"
+        },
+        "locator": {
+          "using": "id",
+          "value": "product-sku",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:05:05.816Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e6",
+      "seq": 6,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "SKU SKU-10065 · EAN 8904220065172",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "assert"
+      },
+      "target": {
+        "kind": "testId",
+        "parts": {
+          "by": "id",
+          "value": "product-sku"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": {
+        "kind": "contains",
+        "expected": "SKU-10065"
+      },
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "573f45ceccd64f707196",
+          "token": "sample-before-7",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:05:08.154Z"
+        },
+        "after": {
+          "identity": "573f45ceccd64f707196",
+          "token": "sample-after-7",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:05:10.141Z"
+        },
+        "attributes": null,
+        "locator": null,
+        "suggestions": []
+      },
+      "id": "e7",
+      "seq": 7,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "checkpoint",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "checkpoint",
+        "name": "product-detail"
+      },
+      "target": null,
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "01111295f3549b0e7c63",
+          "token": "sample-before-8",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:10:00.115Z"
+        },
+        "after": {
+          "identity": "01111295f3549b0e7c63",
+          "token": "sample-after-8",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:11:20.339Z"
+        },
+        "attributes": {
+          "rect": {
+            "height": 48,
+            "width": 252,
+            "x": 700,
+            "y": 920
+          },
+          "text": "Write a review",
+          "id": "null",
+          "class": "android.widget.TextView"
+        },
+        "locator": {
+          "using": "-android uiautomator",
+          "value": "new UiSelector().text(\"Write a review\")",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:11:17.987Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e8",
+      "seq": 8,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "Write a review",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "scroll_to",
+        "direction": "down",
+        "scrollContainer": {
+          "by": "id",
+          "value": "product-scroll"
+        },
+        "maxScrolls": 8,
+        "percent": 0.65
+      },
+      "target": {
+        "kind": "text",
+        "parts": {
+          "by": "text",
+          "value": "Write a review"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": null,
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    },
+    {
+      "reliability": {
+        "version": 2,
+        "settings": {
+          "timeoutSec": 10,
+          "maxScrolls": 8,
+          "stableMs": 150,
+          "suggestNavigation": true
+        },
+        "before": {
+          "identity": "01111295f3549b0e7c63",
+          "token": "sample-before-9",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:11:20.339Z"
+        },
+        "after": {
+          "identity": "01111295f3549b0e7c63",
+          "token": "sample-after-9",
+          "package": "com.stockpilot.b2b",
+          "activity": ".MainActivity",
+          "context": "NATIVE_APP",
+          "url": null,
+          "width": 1080,
+          "height": 2400,
+          "capturedAt": "2026-11-11T15:11:22.617Z"
+        },
+        "attributes": {
+          "class": "android.widget.TextView",
+          "id": "",
+          "label": "",
+          "flags": {
+            "clickable": false,
+            "enabled": true,
+            "checkable": false,
+            "checked": false,
+            "selected": false,
+            "focused": false,
+            "focusable": false,
+            "scrollable": false,
+            "long-clickable": false,
+            "password": false,
+            "displayed": true
+          },
+          "rect": {
+            "x": 700,
+            "y": 920,
+            "w": 252,
+            "h": 48
+          },
+          "text": "Write a review"
+        },
+        "locator": {
+          "using": "-android uiautomator",
+          "value": "new UiSelector().text(\"Write a review\")",
+          "matches": 1,
+          "verifiedAt": "2026-11-11T15:11:20.522Z",
+          "positional": false
+        },
+        "suggestions": []
+      },
+      "id": "e9",
+      "seq": 9,
+      "at": "2026-11-11T15:11:22.645Z",
+      "context": "NATIVE_APP",
+      "webview": null,
+      "title": "Write a review",
+      "screen": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "screenAfter": {
+        "name": "Main",
+        "activity": ".MainActivity"
+      },
+      "action": {
+        "type": "assert"
+      },
+      "target": {
+        "kind": "text",
+        "parts": {
+          "by": "text",
+          "value": "Write a review"
+        },
+        "quality": 0,
+        "warnings": [],
+        "viaAncestor": false,
+        "evidence": null,
+        "alternatives": []
+      },
+      "position": null,
+      "tapStyle": "name",
+      "preCheck": true,
+      "input": null,
+      "check": {
+        "kind": "visible"
+      },
+      "post": [],
+      "suggestions": [],
+      "observations": {
+        "settleMs": null
+      },
+      "templateRef": null,
+      "comment": null,
+      "fallback": {
+        "strategy": "none",
+        "screen": {
+          "width": 1080,
+          "height": 2400
+        }
+      },
+      "error": null
+    }
+  ],
+  "migratedFrom": null
+}

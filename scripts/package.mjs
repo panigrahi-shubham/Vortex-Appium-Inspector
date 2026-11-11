@@ -10,7 +10,7 @@ const zip=path.join(dist,stem+'.zip');
 const stage=path.resolve(root,'.package-staging-'+randomUUID());
 if(!stage.startsWith(root+path.sep+'.package-staging-')||path.dirname(stage)!==root)throw Error('Unsafe staging directory');
 const folder=path.join(stage,stem);fs.mkdirSync(folder,{recursive:true});
-const include=['src','public','docs','samples','scripts','test','package.json','package-lock.json','tsconfig.json','requirements-appium.txt','README.md','CHANGELOG.md','LICENSE','START-VORTEX.cmd','.gitignore','.github'];
+const include=['src','public','docs','samples','examples','scripts','test','package.json','package-lock.json','tsconfig.json','requirements-appium.txt','README.md','CHANGELOG.md','LICENSE','START-VORTEX.cmd','.gitignore','.gitattributes','.github'];
 try{
   for(const rel of include)fs.cpSync(path.join(root,rel),path.join(folder,rel),{recursive:true,filter:p=>!p.endsWith('appium-only.mjs')});
   // Ship the runtime packages (xpath, @xmldom/xmldom) so the extracted ZIP works without an install step.

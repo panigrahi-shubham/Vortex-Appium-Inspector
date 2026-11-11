@@ -504,6 +504,7 @@ function actionArgs() {
     locator: !web && chosen ? chosen : undefined,
     record: $("record").checked,
     autoWeb: $("autoWeb").checked,
+    reliability: readReliabilitySettings(),
   };
 }
 
@@ -638,7 +639,32 @@ $("text").onkeydown = (e) => {
   if (e.key === "Enter") task(fill);
 };
 $("clear").onclick = () => task(() => act("clear"));
-$("scrollTo").onclick = () => task(() => act("scroll_to"));
+$("scrollTo").onclick = () => task(() => act("scroll_to", scrollArguments()));
+$("reliableScroll").onclick = () => task(() => {
+  const value = $("scrollTargetValue").value.trim();
+  return act("scroll_to", scrollArguments(), value ? { scrollTarget: { by: $("scrollTargetBy").value, value } } : {});
+});
+function scrollArguments() {
+  const container = $("scrollContainerValue").value.trim();
+  return { direction: $("scrollDirection").value, ...(container ? { scrollContainer: { by: isNative() ? "id" : "css", value: container } } : {}) };
+}
+function readReliabilitySettings() {
+  return { timeoutSec: Number($("reliabilityTimeout").value), maxScrolls: Number($("reliabilityScrolls").value), stableMs: Number($("reliabilityStable").value), suggestNavigation: $("suggestNavigation").checked, hideKeyboardBeforeTap: $("hideKeyboardBeforeTap").checked };
+}
+function applyReliabilitySettings(settings) {
+  if (!settings) return;
+  $("reliabilityTimeout").value = settings.timeoutSec ?? 15;
+  $("reliabilityScrolls").value = settings.maxScrolls ?? 8;
+  $("reliabilityStable").value = settings.stableMs ?? 150;
+  $("suggestNavigation").checked = settings.suggestNavigation !== false;
+  $("hideKeyboardBeforeTap").checked = settings.hideKeyboardBeforeTap !== false;
+}
+try { applyReliabilitySettings(JSON.parse(localStorage.getItem("vortex.reliability.v2") || "null")); } catch {}
+for (const id of ["reliabilityTimeout", "reliabilityScrolls", "reliabilityStable", "suggestNavigation", "hideKeyboardBeforeTap"]) $(id).onchange = () => {
+  try { localStorage.setItem("vortex.reliability.v2", JSON.stringify(readReliabilitySettings())); } catch {}
+  savedRef = null;
+  renderGenerated([]);
+};
 const assertNow = (assertion = $("assertion").value) =>
   act("assert", { assertion, expected: assertion === "count" ? Number($("expected").value) : $("expected").value });
 $("assert").onclick = () => task(() => assertNow());
@@ -647,6 +673,8 @@ document
   .forEach((b) => (b.onclick = () => task(() => act(b.dataset.global, b.dataset.key ? { key: b.dataset.key } : {}))));
 document.querySelectorAll("[data-swipe]").forEach((b) => (b.onclick = () => task(() => act("swipe", { direction: b.dataset.swipe }))));
 $("wait").onclick = () => task(() => act("sleep", { ms: 1500 }));
+$("waitVisible").onclick = () => task(() => act("wait_visible"));
+$("waitHidden").onclick = () => task(() => act("wait_hidden"));
 $("deepLink").onclick = () => task(() => act("deep_link", { url: $("extraValue").value }));
 $("checkpoint").onclick = () => task(() => act("checkpoint", { name: $("extraValue").value }));
 $("checkScreen").onclick = () => task(() => act("check_activity"));
@@ -672,6 +700,9 @@ function stepText(s, i) {
 }
 
 function renderSteps() {
+  const checkpoint = $("playbackCheckpoint").value;
+  $("playbackCheckpoint").replaceChildren(new Option("Full saved test", ""), ...steps.flatMap((s, i) => s.type === "checkpoint" ? [new Option(`Through step ${i + 1}: ${s.args?.name || "checkpoint"}`, String(i + 1))] : []));
+  if ([...$("playbackCheckpoint").options].some(o => o.value === checkpoint)) $("playbackCheckpoint").value = checkpoint;
   $("stepCount").textContent = steps.length;
   $("steps").replaceChildren();
   const change = (url, body, message) =>
@@ -706,6 +737,18 @@ function renderSteps() {
     button("✕", "Delete this step", true, () => change("recording/delete", { index: i }, "Step deleted. Phone state was not undone."));
     row.append(text, tools);
     $("steps").append(row);
+    for (const suggestion of s.reliability?.suggestions || []) {
+      if (suggestion.accepted) continue;
+      const review = document.createElement("div");
+      review.className = "navigation-suggestion";
+      const label = document.createElement("span");
+      label.textContent = `Suggested check: ${suggestion.title}. ${suggestion.reason} `;
+      const approve = document.createElement("button");
+      approve.textContent = "Add navigation check";
+      approve.onclick = () => change("recording/approve-suggestion", { index: i, id: suggestion.id }, "Approved navigation check added. Save the test to include it in replay.");
+      review.append(label, approve);
+      row.append(review);
+    }
   });
 }
 
@@ -730,7 +773,7 @@ $("reset").onclick = () =>
 // ---- generation and replay -------------------------------------------------------------------
 
 function config() {
-  return { name: $("name").value, module: $("module").value, mode: $("mode").value, sharedPages: $("sharedPages").checked && $("mode").value !== "plain" };
+  return { name: $("name").value, module: $("module").value, mode: $("mode").value, sharedPages: $("sharedPages").checked && $("mode").value !== "plain", reliability: readReliabilitySettings() };
 }
 /** The test's own files, followed by the shared page files it uses (when page objects are shared). */
 const allFiles = (r) => [...r.files, ...(r.sharedFiles || [])];
@@ -833,7 +876,7 @@ $("run").onclick = () =>
     const ref = $("saved").value ? JSON.parse($("saved").value) : savedRef;
     if (!ref) throw Error("Save a test or choose a saved test first.");
     if (!confirm("Run the saved test on the connected phone? The Inspector session will close and the test may change app data.")) return;
-    const r = await api("run", ref);
+    const r = await api("run", { ...ref, stopAfterStep: $("playbackCheckpoint").value || undefined });
     $("repair").hidden = true;
     activeRun = r.id;
     screen = null;
@@ -867,6 +910,7 @@ for (const id of ["name", "module", "mode", "sharedPages"])
     savedRef = null;
   };
 $("saved").after(Object.assign(document.createElement("button"), { id: "load", textContent: "Load recording" }));
+$("saved").onchange = () => $("playbackCheckpoint").replaceChildren(new Option("Load this recording to choose a checkpoint", ""));
 $("load").onclick = () =>
   task(async () => {
     if (!$("saved").value) throw Error("Choose a saved test first.");
@@ -878,6 +922,7 @@ $("load").onclick = () =>
     $("module").value = r.module;
     $("pkg").value = r.pkg;
     $("mode").value = r.mode;
+    applyReliabilitySettings(r.reliability);
     $("sharedPages").checked = !!r.sharedPages;
     savedRef = ref;
     renderSteps();

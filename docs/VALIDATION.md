@@ -1,5 +1,7 @@
 # V1.0.0 validation — 11 November 2026
 
+For the subsequent Reliability Engine v2 upgrade, current automated results and StockPilot Plain/POM physical-device acceptance are in [RELIABILITY_V2.md](RELIABILITY_V2.md). The results below are the earlier merge baseline.
+
 The extracted v1.0.0 source was merged into the original `vortex-appium-recorder` project. Existing dependencies, generated tests and runtime state were preserved. Replaced source files were backed up locally; the extracted package and device artifacts are excluded from Git.
 
 ## Windows automated checks

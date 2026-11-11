@@ -1,0 +1,65 @@
+{
+  "schema": "vortex.manifest",
+  "version": 1,
+  "generator": "vortex reliability engine v2",
+  "recordingId": "stockpilot-catalog-search",
+  "name": "StockPilot catalog search",
+  "updatedAt": "2026-11-11T15:37:19.051Z",
+  "mode": "both",
+  "target": "plain",
+  "frameworks": [
+    "appium"
+  ],
+  "files": {
+    "appium/plain/test_stockpilot_catalog_search.py": {
+      "sha256": "823601167f86867f00601654d0aa130b1d979ac30149ee856e50db828636b76e",
+      "framework": "appium",
+      "variant": "plain",
+      "role": "entry",
+      "discoverable": true
+    },
+    "appium/pom/pytest.ini": {
+      "sha256": "d2f853960cfc11a1587366efefe86256a862a5fd2a15f9db96da86c7ef3901b5",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/pages/stockpilot_catalog_search_pages/__init__.py": {
+      "sha256": "fffa9fdef5a9fc54e07e5c41833e24ae878e6193753bf878eaf8f1f628fc3938",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/pages/stockpilot_catalog_search_pages/base_page.py": {
+      "sha256": "db447d67aa17c81ffec7507d2a22ca8edc31bb4078c69c467d2d652ca9debbd9",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/pages/stockpilot_catalog_search_pages/main_page.py": {
+      "sha256": "8bfd554433909012a6f5c2659a033d641d32131f37e0a5c3507f4172e079cd42",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/pages/stockpilot_catalog_search_pages/data.py": {
+      "sha256": "6ef383a921eb83f20a25dc509d806ad06285c1bc1e504f00a46f646006876b09",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/conftest.py": {
+      "sha256": "8df4cbd4f547a6f3ccc73c9d812c301db16a2d50ed7bb103f06fdcb6c8d47295",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "support"
+    },
+    "appium/pom/tests/alt_test_stockpilot_catalog_search_pom.py": {
+      "sha256": "7976ac13b6c0a9685287dc323b8c0010189aadb71aec8a5df45469c46cbe231a",
+      "framework": "appium",
+      "variant": "pom",
+      "role": "entry",
+      "discoverable": false
+    }
+  }
+}

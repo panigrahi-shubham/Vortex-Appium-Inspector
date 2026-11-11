@@ -1,5 +1,7 @@
 # Appium-only architecture
 
+Reliability Engine v2 extends these services without changing the Appium engine or the recording schema version. Its evidence, Python helpers, compile checks, checkpoint scope, compatibility notes and validation are described in [RELIABILITY_V2.md](RELIABILITY_V2.md).
+
 `src/server.ts` serves a loopback-only UI and JSON API. Host/origin and JSON-content checks guard mutations. The listening port is acquired before recovering server state so a duplicate launch cannot disturb an existing recorder. API bodies are capped at 2 MB.
 
 `src/application.ts` owns a serialized command queue, recording model, snapshot tokens, saved project operations, and the handoff between Inspector and pytest. `src/engines/appium/inspector.ts` owns one UiAutomator2 session for native hierarchy, screenshots, locator verification, and WebView contexts. All device actions use that session; ADB is used for device discovery only.

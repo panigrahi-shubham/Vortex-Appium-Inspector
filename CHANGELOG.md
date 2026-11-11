@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added: Reliability Engine v2 with additive action evidence, unique locator waits, stable bounds, verified native element gestures, keyboard preparation, bounded container-aware Native/WebView scrolling, and explicit navigation suggestions requiring tester approval.
+- Added: checkpoint-scoped playback with partial-result labels, Python compile/AST validation before export, reusable standalone failure/cleanup helpers, and generated Plain/POM StockPilot examples.
+- Safety: legacy `both` tap records remain readable, but absent locators fail rather than silently tapping a recorded point. Explicit coordinate records and explicit swipes remain supported. Exported tests collect failed-step state and preserve the original error if artifact collection or session cleanup also fails.
+- Regression coverage: older recording round-trips, uniqueness, delayed rendering, scroll bounds/progress/end detection, Native → WebView → Native replay, checkpoint scope, navigation approval, failure evidence and cleanup. The separate MobileWright project is unchanged.
+
 - Changed: all phone actions are grouped beneath the selected locator in one Actions panel, with Tap, Type, Assert and More tabs. App navigation and the recording toggle stay in that panel; the full tree, locator list and Python lookup are expandable. Quick-record input selection and keyboard shortcuts reveal the appropriate action category.
 
 - Added: simple inspection with visible Text, ID/label and Point choices, Python previews, and instant hover suggestions from the captured hierarchy.
