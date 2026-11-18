@@ -79,6 +79,12 @@ test('Plain and POM compile with semantic scroll, explicit swipe, checkpoint, Na
   assert.deepEqual(result.issues, []);
   assert.equal(validatePythonFiles(result.files).ok, true);
   const plain = result.files.find(f => f.variant === 'plain')!.content;
+  const support = result.files.find(f => f.variant === 'plain' && f.role === 'support')!;
+  assert.match(plain, /from vortex_general_review_support import/);
+  assert.ok(plain.split('\n').length < 130, 'the test contains steps, not hundreds of helper lines');
+  assert.ok(!plain.includes('def scroll_until_visible'));
+  assert.match(support.content, /def scroll_until_visible/);
+  assert.match(support.content, /def driver\(/);
   assert.match(plain, /max_attempts=3/);
   assert.match(plain, /driver.swipe\(100, 900, 100, 200, 600\)/);
   assert.match(plain, /with webview\(driver/);

@@ -9,7 +9,7 @@
   <body>
     <header>
       <div>
-        <strong>VORTEX</strong><span class="badge">APPIUM EDITION · 1.0</span>
+        <strong>VORTEX</strong><span class="badge">APPIUM EDITION · 2.0.0</span>
         <p>Inspect, record, verify.</p>
       </div>
       <span id="status">Connecting…</span>
@@ -278,7 +278,7 @@
           <button data-guide-target="newFile">Find New file</button>
         </article>
         <article class="panel"><h2>4. Save the Python test</h2>
-          <ol><li>Choose <strong>Plain pytest</strong> for your first test. It keeps the test in one Python file.</li><li>Click <strong>Preview</strong> to see the generated files. Choose a file in the dropdown to read it, or use <strong>Copy file code</strong>.</li><li>Click <strong>Save test</strong> after recording. The output is saved under <code>&lt;output folder&gt;/&lt;module&gt;/&lt;test-name&gt;/</code>, usually inside <code>generated/</code>.</li></ol>
+          <ol><li>Choose <strong>Plain pytest</strong> for your first test. Your steps stay in a short test file; waits, scrolling, setup and failure evidence live in a separate reusable support file. Keep both files together.</li><li>Click <strong>Preview</strong> to see the generated files. Choose a file in the dropdown to read it, or use <strong>Copy file code</strong>. Copying just the test does not copy its support file.</li><li>Click <strong>Save test</strong> after recording. The output is saved under <code>&lt;output folder&gt;/&lt;module&gt;/&lt;test-name&gt;/</code>, usually inside <code>generated/</code>.</li></ol>
           <p class="muted"><strong>Page Object Model (POM)</strong> puts reusable controls and actions into page classes. <strong>Both</strong> creates Plain and POM, running Plain by default. Use <strong>Save page object</strong> if you only want a page class from the current screen.</p>
           <button data-guide-target="save">Find Save test</button>
         </article>

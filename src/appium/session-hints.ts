@@ -48,8 +48,8 @@ const RULES: { code: string; test: RegExp; cause: string; hint: string }[] = [
   {
     code: 'INSTRUMENTATION_FAILED',
     test: /instrumentation process (?:cannot be initialized|is not running)|uiautomator2 server .*(?:is not running|failed to start|cannot be started)|socket hang up/i,
-    cause: 'The UiAutomator2 helper on the phone did not start or was killed.',
-    hint: 'Close other automation tools using this phone, exclude "Appium Settings" and "io.appium.uiautomator2.server" from battery optimisation, then attach again. If it persists: adb uninstall io.appium.uiautomator2.server and adb uninstall io.appium.uiautomator2.server.test, then attach (Appium reinstalls them).',
+    cause: 'The UiAutomator2 connection did not start or was interrupted.',
+    hint: 'Attach a fresh session. If it fails again, restart the Vortex-managed Appium server in Server & setup and check its log. On Windows, keep Appium and ADB running in the background; closing an ADB console ends instrumentation.',
   },
   {
     code: 'PORT_BUSY_ON_DEVICE',

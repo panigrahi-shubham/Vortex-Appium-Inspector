@@ -12,7 +12,7 @@
 //   −5 lookup slower than 300 ms, −10 slower than 1 s · −15 inside an iframe (needs frame switching; not supported
 //   without frame switching).
 
-import type { Session } from '../appium/webdriver.ts';
+import { isLostSessionError, type Session } from '../appium/webdriver.ts';
 import { framePath, SAME_ELEMENT_SCRIPT, VERIFY_SCRIPT, type DomNode, type DomSnapshot } from './dom.ts';
 
 export type WebStrategy = 'data-testid' | 'css id' | 'css name' | 'css aria-label' | 'css placeholder' | 'css attribute' | 'xpath text' | 'css relative' | 'xpath attribute' | 'xpath absolute';
@@ -162,6 +162,7 @@ export async function verifyWeb(session: Session, snap: DomSnapshot, node: DomNo
         if (ids.length) isTarget = (await session.executeArgs(SAME_ELEMENT_SCRIPT, [{ element: ids[0] }, node.path])) === true;
         c.status = ids.length === 0 ? 'not-found' : ids.length > 1 ? 'ambiguous' : !isTarget ? 'wrong-target' : 'verified-unique';
       } catch (e) {
+        if (isLostSessionError(e)) throw e;
         c.status = 'error';
         c.weaknesses.push(`lookup failed: ${(e as Error).message.slice(0, 160)}`);
       }

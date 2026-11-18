@@ -22,13 +22,22 @@ export interface SessionDeps {
 }
 
 export class SessionService {
-  snapshot: Snapshot | null = null;
+  #snapshot: Snapshot | null = null;
   serial: string | null = null;
   readonly #d: SessionDeps;
 
   constructor(deps: SessionDeps) {
     this.#d = deps;
   }
+
+  get snapshot(): Snapshot | null {
+    // Locator/context commands can detect a dead session outside capture().
+    // Their old screenshot must disappear from status and cannot authorize actions.
+    if (!this.#d.inspector.status().open) this.#snapshot = null;
+    return this.#snapshot;
+  }
+
+  set snapshot(value: Snapshot | null) { this.#snapshot = value; }
 
   async start(serial: string, pkg: string) {
     const { inspector, runner, recording } = this.#d;
@@ -57,9 +66,21 @@ export class SessionService {
   }
 
   async capture(autoWeb = true, preferredContext?: string): Promise<Snapshot> {
-    const { inspector, recording } = this.#d;
+    const { inspector } = this.#d;
     // A failed refresh invalidates all old hit targets; no old screenshot may authorize an action.
     this.snapshot = null;
+    try {
+      return await this.#captureOnce(autoWeb, preferredContext);
+    } catch (e) {
+      if ((e as { code?: string }).code !== 'SESSION_LOST' || !this.serial) throw e;
+      // Recover observation once. Never retry a tap, input, swipe or assertion here.
+      await inspector.start(this.serial, true);
+      return this.#captureOnce(autoWeb, preferredContext);
+    }
+  }
+
+  async #captureOnce(autoWeb: boolean, preferredContext?: string): Promise<Snapshot> {
+    const { inspector, recording } = this.#d;
     const native = await inspector.source();
     let web: WebView | null = null;
     let webMessage = 'Native controls · ID, accessibility, text, XPath and coordinates';
@@ -71,10 +92,12 @@ export class SessionService {
           web = await inspector.webSwitch(context, { captureImage: false });
           webMessage = 'WebView DOM connected · CSS and XPath available';
         } catch (e) {
+          if ((e as { code?: string }).code === 'SESSION_LOST') throw e;
           webMessage = `DOM unavailable: ${(e as Error).message}. Use native controls or explicit coordinates.`;
         }
       } else webMessage = 'WebView detected. DOM is not exposed by this build; use native text, ID, XPath or explicit coordinates.';
     }
+    if (!inspector.status().open) throw problem('UiAutomator2 disconnected during screen capture.', 'SESSION_LOST', 502);
     this.snapshot = { ...native, token: randomUUID(), web, webMessage };
     if (native.width && native.height) recording.recordedSize = { width: native.width, height: native.height };
     try {

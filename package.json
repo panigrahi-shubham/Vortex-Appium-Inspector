@@ -1,6 +1,6 @@
 {
   "name": "vortex-appium-inspector",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Appium-only Android inspector, recorder and Python pytest code generator",
   "license": "MIT",
   "private": true,

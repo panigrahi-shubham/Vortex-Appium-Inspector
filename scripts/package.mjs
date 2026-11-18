@@ -12,9 +12,9 @@ if(!stage.startsWith(root+path.sep+'.package-staging-')||path.dirname(stage)!==r
 const folder=path.join(stage,stem);fs.mkdirSync(folder,{recursive:true});
 const include=['src','public','docs','samples','examples','scripts','test','package.json','package-lock.json','tsconfig.json','requirements-appium.txt','README.md','CHANGELOG.md','LICENSE','START-VORTEX.cmd','.gitignore','.gitattributes','.github'];
 try{
-  for(const rel of include)fs.cpSync(path.join(root,rel),path.join(folder,rel),{recursive:true,filter:p=>!p.endsWith('appium-only.mjs')});
+  for(const rel of include)fs.cpSync(path.join(root,rel),path.join(folder,rel),{recursive:true,filter:p=>!p.endsWith('appium-only.mjs')&&!p.endsWith('.pyc')&&!['__pycache__','.pytest_cache'].includes(path.basename(p))});
   // Ship the runtime packages (xpath, @xmldom/xmldom) so the extracted ZIP works without an install step.
-  execFileSync(process.platform==='win32'?'npm.cmd':'npm',['ci','--omit=dev','--ignore-scripts','--no-audit','--no-fund'],{cwd:folder,stdio:'inherit',shell:process.platform==='win32'});
+  execFileSync(process.platform==='win32'?'npm.cmd':'npm',['ci','--omit=dev','--ignore-scripts','--no-audit','--no-fund'],{cwd:folder,stdio:'inherit',windowsHide:true,shell:process.platform==='win32'});
   const files=[];
   function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory())walk(f);else files.push({path:path.relative(folder,f).split(path.sep).join('/'),sha256:createHash('sha256').update(fs.readFileSync(f)).digest('hex')});}}
   walk(folder);fs.writeFileSync(path.join(folder,'PACKAGE-MANIFEST.json'),JSON.stringify({name:pkg.name,version:pkg.version,files},null,2)+'\n');

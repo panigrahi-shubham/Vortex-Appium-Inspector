@@ -4,7 +4,7 @@
   "generator": "vortex reliability engine v2",
   "recordingId": "stockpilot-catalog-search",
   "name": "StockPilot catalog search",
-  "updatedAt": "2026-11-11T15:37:19.051Z",
+  "updatedAt": "2026-11-18T17:47:40.103Z",
   "mode": "both",
   "target": "plain",
   "frameworks": [
@@ -12,11 +12,17 @@
   ],
   "files": {
     "appium/plain/test_stockpilot_catalog_search.py": {
-      "sha256": "823601167f86867f00601654d0aa130b1d979ac30149ee856e50db828636b76e",
+      "sha256": "07d56d608675980c2dced75483a520d858a1a2315e1ed99f0fadbd74f13982ea",
       "framework": "appium",
       "variant": "plain",
       "role": "entry",
       "discoverable": true
+    },
+    "appium/plain/vortex_stockpilot_catalog_search_support.py": {
+      "sha256": "dc4125c1ecaa6115141996a7ef1f808dadf88b2e9e0ddaf931e49b96be496072",
+      "framework": "appium",
+      "variant": "plain",
+      "role": "support"
     },
     "appium/pom/pytest.ini": {
       "sha256": "d2f853960cfc11a1587366efefe86256a862a5fd2a15f9db96da86c7ef3901b5",

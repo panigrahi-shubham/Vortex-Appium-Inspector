@@ -9,6 +9,8 @@ export function pythonReliabilitySettings(settings?: ReliabilitySettings) {
   return `{"timeoutSec": ${s.timeoutSec}, "maxScrolls": ${s.maxScrolls}, "stableMs": ${s.stableMs}, "hideKeyboardBeforeTap": ${s.hideKeyboardBeforeTap === false ? 'False' : 'True'}}`;
 }
 
-export function guardedStep(lines: string[], n: number, title: string, locator: string | null): string[] {
-  return [lines[0], `if not begin_step(driver, ${n}, ${pyStr(title.replace(/[\r\n]/g, ' '))}, ${locator ?? 'None'}):`, '    return', 'with recorded_step(driver):', ...lines.slice(1).map(l => '    ' + l)];
+export function guardedStep(lines: string[], n: number, title: string, locator: string | null, captureHere = true): string[] {
+  const commands = lines.slice(1);
+  return [lines[0], `if not begin_step(driver, ${n}, ${pyStr(title.replace(/[\r\n]/g, ' '))}, ${locator ?? 'None'}):`, '    return',
+    ...(captureHere ? ['with recorded_step(driver):', ...commands.map(l => '    ' + l)] : commands)];
 }

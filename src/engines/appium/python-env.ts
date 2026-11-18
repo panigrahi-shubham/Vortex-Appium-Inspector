@@ -43,12 +43,13 @@ export function candidates(configured: string, platform: NodeJS.Platform = proce
     : [{ file: 'python3', args: [] }, { file: 'python', args: [] }];
 }
 
-export async function detectPython(configured = process.env.VORTEX_PYTHON ?? ''): Promise<PythonEnv> {
+export async function detectPython(configured = process.env.VORTEX_PYTHON ?? '', probe = run): Promise<PythonEnv> {
   const errors: string[] = [];
+  let firstInstalled: PythonEnv | undefined;
   for (const cmd of candidates(configured)) {
     let info: { version: string; executable: string; pytest: string | null; appium: string | null; selenium: string | null };
     try {
-      info = JSON.parse((await run(cmd)).trim().split(/\r?\n/).pop() ?? '{}');
+      info = JSON.parse((await probe(cmd)).trim().split(/\r?\n/).pop() ?? '{}');
     } catch (e) {
       errors.push(`${[cmd.file, ...cmd.args].join(' ')}: ${(e as Error).message.split('\n')[0]}`);
       continue;
@@ -59,7 +60,7 @@ export async function detectPython(configured = process.env.VORTEX_PYTHON ?? '')
     if (!info.pytest) problems.push('pytest is not installed.');
     if (!info.appium) problems.push('Appium-Python-Client is not installed.');
     const exe = [cmd.file, ...cmd.args].map((p) => (p.includes(' ') ? `"${p}"` : p)).join(' ');
-    return {
+    const environment: PythonEnv = {
       ok: problems.length === 0,
       command: cmd,
       version: info.version,
@@ -68,8 +69,10 @@ export async function detectPython(configured = process.env.VORTEX_PYTHON ?? '')
       problems,
       installCommand: problems.length ? `${exe} -m pip install ${PY_REQUIREMENTS.map((r) => `"${r}"`).join(' ')}` : null,
     };
+    if (environment.ok) return environment;
+    firstInstalled ??= environment;
   }
-  return {
+  return firstInstalled ?? {
     ok: false,
     command: null,
     version: null,

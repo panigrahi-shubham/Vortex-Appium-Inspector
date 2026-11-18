@@ -1,4 +1,4 @@
-# Vortex Appium Inspector — 1.0.0
+# Vortex Appium Inspector — 2.0.0
 
 A separate Appium-only edition of Vortex for Android. Inspect a phone, record actions and assertions, generate Python pytest tests in Plain or Page Object Model format, save them, and replay them with live output and reports. This copy has no alternative automation engine, CLI daemon, or TypeScript test generator.
 
@@ -8,7 +8,7 @@ A separate Appium-only edition of Vortex for Android. Inspect a phone, record ac
 
 Open **Actions → Reliability settings** for condition timeouts, stable bounds, bounded scrolling, keyboard handling and navigation suggestions. Suggested checks require your approval. Choose a saved checkpoint under **Playback scope** to replay from step 1 through that checkpoint; results clearly identify partial runs.
 
-New actions retain screen identity, element attributes, locator verification and context. Plain and POM exports embed the reusable Python reliability helpers, compile before export, and save failed-step evidence when run independently with pytest. Missing locators fail instead of silently switching to recorded coordinates. Explicit point taps, swipes and pauses remain explicit. Older recording formats remain readable.
+New actions retain screen identity, element attributes, locator verification and context. Plain exports keep test steps in a short Python file and put fixtures, waits, scrolling and failure capture in a reusable support file beside it. Keep both files together. POM exports include their reusable base page. All exports compile before saving and save failed-step evidence when run independently with pytest. Missing locators fail instead of silently switching to recorded coordinates. Explicit point taps, swipes and pauses remain explicit. Older recording formats remain readable.
 
 See the [design, compatibility notes and validation](docs/RELIABILITY_V2.md) and the [generated StockPilot example](examples/stockpilot/README.md). This upgrade changes the Appium inspector only; the separate MobileWright recorder is preserved.
 

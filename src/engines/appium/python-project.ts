@@ -1,4 +1,4 @@
-// Appium Python generation from the shared recording model: Plain (one standalone pytest file, the
+// Appium Python generation from the shared recording model: Plain (pytest test + reusable helpers, the
 // Milestone 2 format) and POM (page objects, base page, data module, conftest fixtures, test).
 //
 // Python POM layout inside <case>/appium/pom/:
@@ -100,8 +100,12 @@ export function generatePythonPlainFiles(rec: Recording, o: PyOptions): { files:
       stem: pyStem(o),
       header: [`Format: ${PY_FORMAT} (Plain). Recording: ${rec.id}.`],
       reliability: rec.reliability,
+      supportModule: `vortex_${pyStem(o)}_support`,
     });
-    return { files: [{ path: `appium/plain/${g.fileName}`, content: g.code, framework: 'appium', variant: 'plain', role: 'entry' }], issues: [] };
+    return { files: [
+      { path: `appium/plain/${g.fileName}`, content: g.code, framework: 'appium', variant: 'plain', role: 'entry' },
+      { path: `appium/plain/vortex_${pyStem(o)}_support.py`, content: g.supportCode!, framework: 'appium', variant: 'plain', role: 'support' },
+    ], issues: [] };
   } catch (e) {
     if (e instanceof CodegenValidationError) return { files: [], issues: e.issues.map((i) => ({ framework: 'appium', variant: 'plain', step: i.step, message: i.message })) };
     throw e;

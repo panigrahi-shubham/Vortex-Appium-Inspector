@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import { Application } from '../../src/application.ts';
 import { MockAppium } from '../fixtures/mock-appium.ts';
 import { detectPython } from '../../src/engines/appium/python-env.ts';
+import { WebDriverError } from '../../src/engines/appium/webdriver.ts';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 async function setup(t: {after(fn:()=>Promise<void>):void}, options = {}) {
@@ -20,6 +21,58 @@ async function setup(t: {after(fn:()=>Promise<void>):void}, options = {}) {
 }
 const byId=(app:Application,suffix:string)=>app.snapshot!.nodes.find(n=>n.resourceId.endsWith(suffix))!.index;
 const act=(app:Application,type:string,extra:Record<string,unknown>={})=>app.action({token:app.snapshot!.token,type,...extra});
+
+const deadInstrumentation = () => new WebDriverError(500, 'unknown error', "'POST /elements' cannot be proxied to UiAutomator2 server because the instrumentation process is not running (probably crashed).");
+
+test('refresh replaces a dead UiAutomator2 session once without replaying recorded actions', async t => {
+  const { app, mock } = await setup(t);
+  await act(app, 'launch_app');
+  const before = JSON.stringify(app.steps);
+  const session = app.inspector.session();
+  const token = app.snapshot!.token;
+  let calls = 0;
+  let rejectOldShot!: (error: Error) => void;
+  session.screenshotPng = () => new Promise((_resolve, reject) => { rejectOldShot = reject; });
+  session.pageSource = async () => { calls++; throw deadInstrumentation(); };
+  const fresh = await app.capture(false);
+  assert.equal(calls, 1);
+  assert.notEqual(app.inspector.session().id, session.id);
+  assert.notEqual(fresh.token, token);
+  assert.equal(mock.sessions.size, 1, 'the dead session was deleted before its replacement');
+  assert.equal(JSON.stringify(app.steps), before);
+  const replacement = app.inspector.session().id;
+  rejectOldShot(deadInstrumentation());
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(app.inspector.session().id, replacement, 'a late error from the old capture cannot invalidate its replacement');
+});
+
+test('a dead instrumentation action is never retried and Attach can create a fresh session', async t => {
+  const { app } = await setup(t);
+  const session = app.inspector.session();
+  let calls = 0;
+  session.execute = async () => { calls++; throw deadInstrumentation(); };
+  await assert.rejects(() => act(app, 'tap', { coordinate: true, x: 100, y: 200 }), (error: any) => error.code === 'SESSION_LOST' && error.applied === false && /Attach session/.test(error.hint));
+  assert.equal(calls, 1, 'potentially delivered device actions must not be replayed');
+  assert.equal(app.snapshot, null);
+  assert.equal(app.inspector.status().open, false);
+  assert.equal(app.steps.length, 0);
+  await app.start('mock-device', 'com.yourname.tradehub');
+  assert.notEqual(app.inspector.session().id, session.id);
+  await act(app, 'launch_app');
+  assert.equal(app.steps.length, 1);
+});
+
+test('locator verification stops at a dead session and invalidates its cached screen', async t => {
+  const { app } = await setup(t);
+  const session = app.inspector.session();
+  let calls = 0;
+  session.findElements = async () => { calls++; throw deadInstrumentation(); };
+  await assert.rejects(() => app.inspect({ token: app.snapshot!.token, index: byId(app, 'home_search_input'), verify: true }), (error: any) => error.code === 'SESSION_LOST');
+  assert.equal(calls, 1, 'do not continue checking every fallback against dead instrumentation');
+  assert.equal(app.inspector.status().open, false);
+  assert.equal(app.snapshot, null);
+  assert.equal(app.steps.length, 0);
+});
 
 test('full screenshot pixels map point taps even when the app window excludes Android system bars', async t => {
   const { app } = await setup(t);
@@ -117,4 +170,15 @@ test('debug WebView exposes CSS and XPath and records a real DOM fill', {timeout
   const built=app.build({name:'webview',mode:'both'});
   assert.equal(built.issues.length,0);
   assert.ok(built.files.some(f=>f.content.includes('CSS_SELECTOR')));
+  const old = app.inspector.session();
+  const originalSwitch = old.switchContext.bind(old);
+  old.switchContext = async name => {
+    if (name !== 'NATIVE_APP') throw deadInstrumentation();
+    await originalSwitch(name);
+  };
+  const before = JSON.stringify(app.steps);
+  const recovered = await app.capture(true);
+  assert.notEqual(app.inspector.session().id, old.id);
+  assert.ok(recovered.token && recovered.nodes.length, 'loss during DOM capture returns a fresh usable screen');
+  assert.equal(JSON.stringify(app.steps), before);
 });

@@ -40,10 +40,7 @@ async function api(url, body) {
       steps = data.steps;
       renderSteps();
     }
-    if (data.applied !== undefined) {
-      screen = null;
-      clearOverlays();
-    }
+    if (data.applied !== undefined || ["screen", "session/start"].includes(url) || ["SESSION_LOST", "STALE_SCREEN", "NOT_OPEN"].includes(data.code)) renderScreen(null);
     const err = Error([data.error, data.hint, ...(data.issues || []).map((i) => `Step ${i.step}: ${i.message}`)].filter(Boolean).join("\n"));
     err.data = data;
     throw err;
@@ -66,6 +63,8 @@ async function task(fn) {
     document.querySelectorAll("button").forEach((b) => (b.disabled = false));
     updateCopyButtons();
     updateLiveStatus();
+    // Session errors must be reflected even when the failed operation never reached status().
+    if (!screen) status().catch(() => {});
   }
 }
 
@@ -74,6 +73,8 @@ const label = (n) => n.text || n.contentDesc || n.resourceId || n.className;
 const pct = (v, total) => `${((v / total) * 100).toFixed(1)}%`;
 
 function updateCopyButtons() {
+  document.querySelectorAll('#actionCenter button:not([role="tab"]), #pagePreview, #pageSave').forEach((b) => { b.disabled = busy || !screen; });
+  $("verify").disabled = busy || !screen || !selected;
   const canCopy = screen && locatorToCopy && (selected || ($("coordinates").checked && point));
   $("copyLocator").disabled = busy || !canCopy;
   $("copyPython").disabled = busy || !canCopy;
@@ -263,7 +264,12 @@ function renderScreen(fresh) {
   $("selector").value = "";
   $("locators").replaceChildren();
   clearOverlays();
+  $("screenshot").hidden = !fresh;
   if (!fresh) {
+    lastCaptureAt = null;
+    $("tree").replaceChildren();
+    $("dimensions").textContent = "No fresh screen";
+    $("point").textContent = "Attach a session or refresh the screen before inspecting or sending actions.";
     updateLiveStatus();
     return;
   }
@@ -951,6 +957,7 @@ function serverLine(m) {
 
 async function status() {
   const s = await api("status");
+  if (!s.session.open && screen) renderScreen(null);
   const state = s.server.server?.state || "disconnected";
   $("status").textContent = `Appium: ${state}${s.server.server ? ` on ${s.server.server.port}` : ""} · ${s.session.open ? "session attached" : "session closed"}`;
   $("status").classList.toggle("error", ["exited", "unhealthy", "unreachable"].includes(state));
@@ -1134,7 +1141,7 @@ $("detach").onclick = () =>
     notice("Inspector session closed.");
   });
 const refresh = async () => {
-  screen = null;
+  renderScreen(null);
   renderScreen(await api("screen", { autoWeb: $("autoWeb").checked }));
   notice("Screen refreshed.");
 };

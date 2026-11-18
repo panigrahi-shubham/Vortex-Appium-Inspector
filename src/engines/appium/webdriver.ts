@@ -21,10 +21,16 @@ export function hintFor(error: string, message: string): string | null {
   if (m.includes('android_home') || m.includes('android_sdk_root')) return 'Appium needs ANDROID_HOME (or ANDROID_SDK_ROOT) set to your Android SDK folder before the server starts.';
   if (m.includes('unauthorized')) return 'Accept the USB debugging prompt on the phone.';
   if (error === 'invalid session id') return 'The Appium session has ended (closed, timed out or the server restarted). Start a new session.';
-  if (m.includes('instrumentation process is not running') || m.includes('uiautomator2 server')) return 'The UiAutomator2 server on the phone stopped. Another automation tool may be using the device; close it and retry.';
+  if (m.includes('instrumentation process is not running') || m.includes('uiautomator2 server')) return 'The UiAutomator2 connection stopped. Attach a fresh session before continuing. A failed action is never replayed automatically.';
   if (m.includes('no chromedriver found') || m.includes('chromedriver') && m.includes('version')) return 'No Chromedriver matches the WebView version on the phone. Set a matching Chromedriver in Server settings (executable or folder), see the WebView diagnostics for the version.';
   if (m.includes('webview_devtools_remote') || m.includes('failed to get sockets matching')) return 'The WebView exposes no debugging socket: WebView debugging is off for this app (usual in release builds) or the WebView is not open.';
   return null;
+}
+
+/** Only terminal session failures justify replacing a session; ordinary lookup failures do not. */
+export function isLostSessionError(e: unknown): boolean {
+  if ((e as { code?: string } | null)?.code === 'SESSION_LOST') return true;
+  return e instanceof WebDriverError && (e.error === 'invalid session id' || /instrumentation process is not running|uiautomator2 server.*(?:not running|not reachable|has stopped)/i.test(e.message));
 }
 
 export type Using = 'id' | 'accessibility id' | '-android uiautomator' | 'xpath' | 'class name' | 'css selector';

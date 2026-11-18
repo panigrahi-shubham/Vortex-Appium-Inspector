@@ -12,7 +12,7 @@ Navigation detection compares captured activity, context, URL and stable identif
 
 ## Python helpers and output
 
-`src/engines/appium/python/reliability.py` is embedded by the existing Plain and POM generators. Exports run with Appium, Selenium and pytest alone.
+`src/engines/appium/python/reliability.py` supplies the existing Plain and POM generators. Plain project exports keep the test steps in `test_*.py` and emit a case-specific `vortex_*_support.py` beside it, containing the fixture and reusable helpers. Keep both files together. Case-specific module names prevent pytest import collisions across cases. The direct `generatePython()` API still defaults to its original single-file output. POM retains its reusable base page. Exports run with Appium, Selenium and pytest alone.
 
 - `reliable_find()` polls for one visible/enabled target and optionally stable bounds. Native element identities are included in stability checks. No unconditional waits are synthesized. Legacy explicitly recorded pauses remain available.
 - `tap_element()` delivers one verified native element gesture or a WebView DOM click. It never retries a delivered tap as coordinates. Keyboard preparation is conditional, limited to native app controls, and configurable for keyboard-focused tests.
@@ -53,6 +53,12 @@ Preparation explicitly establishes Home and closes the known StockPilot promotio
 Real-device failures during development exposed keyboard dismissal consuming the first catalog tap and scroll gestures beginning on the sticky purchase bar. The detail assertion caught the failed navigation; viewport clipping fixed the gesture area. Earlier failures retained step JSON, screenshot and hierarchy evidence. Missing-review and renamed-locator negative regressions remain hard failures; none skips the review assertion.
 
 Real StockPilot checks used **NATIVE_APP** accessibility. Production WebView DOM was not exposed on this build; DOM execution was verified with Chromium fixtures, not a debug StockPilot build. Local phone screenshots, account state and logs remain in ignored `.vortex` directories and are excluded from the source distribution.
+
+### Windows session recovery and compact exports
+
+On 11 November 2026 a Moto G32 reproduced the reported `POST /elements` instrumentation error. Windows terminated Appium's host ADB instrumentation process with exit code `0xC000013A` while the Android server still answered. Vortex now launches the managed driver's children with hidden consoles. During the physical recovery check, stopping UiAutomator2 and clicking **Refresh screen** created a fresh session and restored StockPilot's hierarchy. The autosaved recording retained its original step. If a device action reports that the session ended, click **Attach session** and check the phone before repeating the action.
+
+The separated Plain pytest export completed the full StockPilot flow in 23.43 seconds on the Moto G32, including the required review check. An earlier attempt stopped during Home setup. The 18 November release shortens that export further by using one failure handler around the test steps. Native and WebView replay are covered by the automated release tests. No phone was connected for a repeat of the 18 November build.
 
 ## Limits
 

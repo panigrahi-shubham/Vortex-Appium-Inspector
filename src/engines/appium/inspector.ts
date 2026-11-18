@@ -9,7 +9,7 @@ import type { ServerManager } from '../../appium/server-manager.ts';
 import type { DeviceLeases } from '../../devices/device-lease.ts';
 import { candidatesFor, recommend, verifyCandidates } from './native-locators.ts';
 import { parsePageSource, type PageSource } from './page-source.ts';
-import { createWebDriverClient, uiautomator2Capabilities, WebDriverError, type Session } from './webdriver.ts';
+import { createWebDriverClient, isLostSessionError, uiautomator2Capabilities, WebDriverError, type Session } from './webdriver.ts';
 import { SNAPSHOT_SCRIPT, framePath, type DomSnapshot } from '../webview/dom.ts';
 import { selectWebWindow } from '../webview/window.ts';
 import { enterFrames, recommendWeb, RULES, verifyWeb, webCandidates, webCodes, type WebCandidate } from '../webview/web-locators.ts';
@@ -66,6 +66,7 @@ return Array.prototype.map.call(arguments, function (el) {
 
 export class AppiumInspector {
   #open: Open | null = null;
+  #cleanup: Promise<unknown> = Promise.resolve();
   #manager: ServerManager;
   #leases: DeviceLeases;
 
@@ -83,6 +84,7 @@ export class AppiumInspector {
   session(): Session { return this.#need().session; }
 
   async start(serial: string, recording = false) {
+    await this.#cleanup;
     if (this.#open) {
       if (this.#open.serial === serial && this.#open.recording === recording) return this.status();
       throw new InspectorError('INSPECTOR_OPEN', 409, `The Inspector is already open on ${this.#open.serial}. Close it first.`);
@@ -95,8 +97,17 @@ export class AppiumInspector {
     try {
       const client = createWebDriverClient(ep.url);
       const session = await client.newSession(uiautomator2Capabilities({ udid: serial, newCommandTimeoutSec: s.sessionIdleTimeoutSec, chromedriverExecutable: s.chromedriverExecutable, chromedriverExecutableDir: s.chromedriverExecutableDir }), s.sessionStartupTimeoutMs);
+      // Direct action, context and locator calls must invalidate the same owner as source().
+      const guarded = new Proxy(session, { get: (target, key, receiver) => {
+        const value = Reflect.get(target, key, receiver);
+        if (typeof value !== 'function') return value;
+        return async (...args: unknown[]) => {
+          try { return await value.apply(target, args); }
+          catch (e) { if (isLostSessionError(e)) throw this.#wrap(e, 'SESSION_LOST', session.id); throw e; }
+        };
+      } });
       this.#manager.trackSession(session.id);
-      this.#open = { id, serial, recording, session, release, startedAt: new Date().toISOString(), last: null, lastXml: null, web: { context: 'NATIVE_APP', snap: null, native: null, nativeWebViews: [], lastSwitchError: null, lastDomError: null } };
+      this.#open = { id, serial, recording, session: guarded, release, startedAt: new Date().toISOString(), last: null, lastXml: null, web: { context: 'NATIVE_APP', snap: null, native: null, nativeWebViews: [], lastSwitchError: null, lastDomError: null } };
       return this.status();
     } catch (e) {
       release();
@@ -451,17 +462,25 @@ export class AppiumInspector {
     return this.#open;
   }
 
-  #wrap(e: unknown, code: string): InspectorError {
+  /** Release a dead session, including errors raised by direct action/locator commands. */
+  invalidateOnError(e: unknown, sessionId?: string): boolean {
+    if (!isLostSessionError(e)) return false;
+    const o = this.#open;
+    if (o && (!sessionId || o.session.id === sessionId)) {
+      this.#open = null;
+      this.#manager.untrackSession(o.session.id);
+      o.release();
+      // Finish deleting the old session before a replacement is started on the same phone.
+      this.#cleanup = o.session.delete().catch(() => {});
+    }
+    return true;
+  }
+
+  #wrap(e: unknown, code: string, sessionId?: string): InspectorError {
     if (e instanceof InspectorError) return e;
     if (e instanceof WebDriverError) {
-      if (e.error === 'invalid session id' && this.#open) {
-        // The session is gone (timeout, server restart): free the device so recording can continue.
-        const o = this.#open;
-        this.#open = null;
-        this.#manager.untrackSession(o.session.id);
-        o.release();
-      }
-      return new InspectorError(code, 502, `Appium: ${e.message}`, e.hint);
+      const lost = this.invalidateOnError(e, sessionId);
+      return new InspectorError(lost ? 'SESSION_LOST' : code, 502, `Appium: ${e.message}`, e.hint);
     }
     return new InspectorError(code, 500, (e as Error).message);
   }

@@ -13,7 +13,7 @@
 
 const isDynamic = (s: string) => /\d{4,}|\b\d+[.,]\d+\b|[₹$€£]|\b\d+:\d+\b/.test(s);
 import type { NativeNode, PageSource } from './page-source.ts';
-import type { Session, Using } from './webdriver.ts';
+import { isLostSessionError, type Session, type Using } from './webdriver.ts';
 
 export type Strategy = 'id' | 'accessibility id' | 'uiautomator description' | 'uiautomator text' | 'uiautomator id + instance' | 'class + text' | 'xpath attributes' | 'xpath anchor' | 'xpath absolute' | 'coordinates';
 
@@ -164,6 +164,7 @@ export async function verifyCandidates(session: Session, node: NativeNode, cands
       const r = score(c, status, ms, node.depth);
       out.push({ ...c, status, matchCount: ids.length, resolutionMs: ms, score: r.score, scoreNotes: r.notes });
     } catch (e) {
+      if (isLostSessionError(e)) throw e;
       const r = score(c, 'error', null, node.depth);
       out.push({ ...c, status: 'error', matchCount: null, resolutionMs: null, score: 0, scoreNotes: r.notes, error: (e as Error).message });
     }

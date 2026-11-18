@@ -12,6 +12,7 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { appiumChildEnv } from './android-env.ts';
 import { basePathPrefix, compatibility, type AppiumHttp, SESSION_ID } from './appium-client.ts';
 import type { AppiumInstall } from './appium-locator.ts';
@@ -104,7 +105,8 @@ export function assertHost(host: unknown, { loopbackOnly }: { loopbackOnly: bool
 const defaultSpawn: SpawnFn = (file, args, logFd, env) =>
   // detached: Appium gets its own process group, so the whole tree can be stopped together and the
   // server can outlive the recorder when "stop on exit" is off (it is adopted again on the next start).
-  nodeSpawn(file, args, { stdio: ['ignore', logFd, logFd], detached: true, windowsHide: true, ...(env ? { env } : {}) });
+  nodeSpawn(file, process.platform === 'win32' ? ['--require', fileURLToPath(new URL('./windows-subprocess.cjs', import.meta.url)), ...args] : args,
+    { stdio: ['ignore', logFd, logFd], detached: true, windowsHide: true, ...(env ? { env } : {}) });
 
 export class ServerManager {
   readonly runs: RunRegistry;

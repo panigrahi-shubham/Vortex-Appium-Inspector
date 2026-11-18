@@ -21,6 +21,28 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const fakeAppium = path.join(root, 'test', 'integration', 'fixtures', 'fake-appium');
 const shots = process.env.VORTEX_UI_SHOTS || '';
 
+test('failed refresh clears stale selection and disables device actions until a fresh capture', async t => {
+  const { page, errors } = await open(t, ['--mock']);
+  await page.waitForFunction(() => document.querySelector('#device option')?.textContent?.includes('mock-device'));
+  await page.locator('#pkg').fill('com.yourname.tradehub');
+  await page.locator('#attach').click(); await noticeHas(page, 'Session attached');
+  await page.locator('#tree button').first().click();
+  await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('#copyElement')!.disabled);
+  await page.route('**/api/screen', route => route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'instrumentation connection stopped', code: 'SOURCE_FAILED' }) }));
+  await page.locator('#refresh').click(); await noticeHas(page, 'instrumentation connection stopped');
+  assert.equal(await page.locator('#screenshot').isVisible(), false);
+  assert.equal(await page.locator('#copyElement').isDisabled(), true);
+  assert.equal(await page.locator('#tap').isDisabled(), true);
+  assert.equal(await page.locator('[data-global="launch_app"]').isDisabled(), true);
+  assert.equal(await page.locator('#tree button').count(), 0);
+  assert.equal(await page.locator('#selector').inputValue(), '');
+  await page.unroute('**/api/screen');
+  await page.locator('#refresh').click(); await noticeHas(page, 'Screen refreshed');
+  assert.equal(await page.locator('#screenshot').isVisible(), true);
+  assert.equal(await page.locator('[data-global="launch_app"]').isDisabled(), false);
+  assert.deepEqual(errors, []);
+});
+
 test('reliability controls, navigation approval and checkpoint playback work through the recorder UI', { timeout: 90_000 }, async t => {
   const { page, errors, base } = await open(t, ['--mock'], { VORTEX_TIMEOUT: '1' });
   await page.waitForFunction(() => document.querySelector('#device option')?.textContent?.includes('mock-device'));
@@ -199,7 +221,7 @@ test('locator search, chosen locator, quick record, secret, step tools and scree
 
   // Generated test: chosen XPath and the secret read from the environment.
   await page.locator('#preview').click();
-  await page.waitForFunction(() => document.querySelector('#code')?.textContent?.includes('from appium import webdriver'));
+  await page.waitForFunction(() => document.querySelector('#code')?.textContent?.includes('def test_'));
   const code = await page.locator('#code').innerText();
   assert.ok(code.includes('AppiumBy.XPATH'), 'the chosen XPath is in the test');
   assert.ok(code.includes('secret("VORTEX_SECRET_PASSWORD")'));

@@ -1,6 +1,6 @@
 // Shared by every service: the product version and the error shape the HTTP layer understands.
 
-export const VERSION = '1.0.0';
+export const VERSION = '2.0.0';
 
 /** An error the API reports as `{ error, code }` with the given HTTP status. */
 export function problem(message: string, code = 'BAD_REQUEST', httpStatus = 400) {

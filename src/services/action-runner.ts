@@ -174,10 +174,13 @@ export class ActionRunner {
       return { screen: fresh, steps: recording.steps, durationMs: Date.now() - began, applied: true };
     } catch (e) {
       if (secretEnv) delete args.text;
+      const lost = inspector.invalidateOnError(e);
       throw Object.assign(e as Error, {
+        ...(lost ? { code: 'SESSION_LOST', httpStatus: 502 } : {}),
         applied,
         steps: recording.steps,
-        hint: applied ? 'The action completed and was recorded, but refresh failed. Refresh manually; do not repeat the action.' : 'The command failed. Refresh and inspect the phone before retrying; a device command may have been delivered.',
+        hint: (applied ? 'The action completed. Do not repeat it. ' : 'The command may have reached the phone. ') +
+          (!inspector.status().open ? 'Click Attach session and inspect the current screen before continuing.' : 'Refresh and inspect the current screen before continuing.'),
       });
     } finally {
       if (context === 'WEBVIEW') await session.switchFrame(null).catch(() => {});

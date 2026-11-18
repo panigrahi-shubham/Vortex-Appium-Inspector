@@ -34,7 +34,11 @@ test('browser UI records, previews, saves and replays through the Appium-only se
   await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='3');
   await page.locator('[data-global="close_app"]').click();await page.waitForFunction(()=>document.querySelector('#stepCount')?.textContent==='4');
   await page.locator('#name').fill('browser smoke');await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice')?.textContent?.includes('Ready to replay'));
-  assert.match(await page.locator('#code').innerText(),/from appium import webdriver/);
+  const entry = await page.locator('#code').innerText();
+  assert.match(entry, /def test_general_browser_smoke\(driver\)/);
+  assert.match(entry, /from vortex_general_browser_smoke_support import/);
+  await page.locator('#files').selectOption('appium/plain/vortex_general_browser_smoke_support.py');
+  assert.match(await page.locator('#code').innerText(), /from appium import webdriver/);
   page.on('dialog',d=>d.accept());await page.locator('#run').click();
   await page.waitForFunction(()=>document.querySelector('#output')?.textContent?.startsWith('PASSED'),{},{timeout:40_000});
   assert.deepEqual(errors,[]);

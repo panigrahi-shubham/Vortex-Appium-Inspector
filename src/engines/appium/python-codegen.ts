@@ -632,7 +632,8 @@ export const HELPERS: Record<string, string[]> = {
 
 // ---- file ----------------------------------------------------------------------------------
 
-export function generatePython(steps: RecordedStep[], opts: { name?: string; appPackage: string; size?: { width: number; height: number } | null; stem?: string; header?: string[]; reliability?: ReliabilitySettings }): { code: string; fileName: string; testName: string } {
+export function generatePython(steps: RecordedStep[], opts: { name?: string; appPackage: string; size?: { width: number; height: number } | null; stem?: string; header?: string[]; reliability?: ReliabilitySettings; supportModule?: string }): { code: string; fileName: string; testName: string; supportCode?: string } {
+  if (opts.supportModule && !/^[a-zA-Z_]\w*$/.test(opts.supportModule)) throw new Error('Invalid Python support module name');
   const name = opts.name || 'recorded flow';
   const ctx: Ctx = { pkg: opts.appPackage, size: opts.size ?? null, helpers: new Set(), imports: new Set(), issues: [] };
   const body: string[] = [];
@@ -650,7 +651,8 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
       seg = key;
     }
     const pad = key ? '    ' : '';
-    for (const line of guardedStep(stepLines(st, i + 1, ctx), i + 1, st.title || st.type, 'code' in loc ? loc.code : null)) {
+    // Plain exports already capture failures around the whole test and inside WebView restoration.
+    for (const line of guardedStep(stepLines(st, i + 1, ctx), i + 1, st.title || st.type, 'code' in loc ? loc.code : null, !opts.supportModule)) {
       body.push(pad + line);
     }
   });
@@ -664,6 +666,7 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   lines.push(`"""${name.replace(/"""/g, "'''")} — recorded with Vortex Android Recorder (Appium UiAutomator2, pytest).`);
   lines.push('');
   lines.push('Run:   pytest ' + `test_${s}.py`);
+  if (opts.supportModule) lines.push(`Keep ${opts.supportModule}.py beside this test (shared fixtures and reliability helpers).`);
   lines.push('Needs: pip install ' + PY_REQUIREMENTS.map((r) => `"${r}"`).join(' '));
   lines.push('       a running Appium server with the uiautomator2 driver, and the device connected.');
   lines.push('Settings (environment variables): APPIUM_URL, ANDROID_UDID (optional), APP_PACKAGE, VORTEX_TIMEOUT.');
@@ -673,6 +676,7 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   for (const h of opts.header ?? []) lines.push(h);
   lines.push('"""');
   lines.push('');
+  const supportStart = lines.length;
   lines.push('import os');
   if (ctx.imports.has('time')) lines.push('import time');
   if (ctx.helpers.has('webview')) lines.push('from contextlib import contextmanager');
@@ -733,10 +737,27 @@ export function generatePython(steps: RecordedStep[], opts: { name?: string; app
   lines.push('        cleanup_session(drv, APP_PACKAGE)');
   lines.push('');
   lines.push('');
+  let supportCode: string | undefined;
+  if (opts.supportModule) {
+    const support = lines.splice(supportStart);
+    supportCode = '# Reusable Appium fixtures, waits, scrolling and failure evidence.\n' + support.join('\n').trimEnd() + '\n';
+    // Import the fixture and only the helpers referenced by this test. The original
+    // single-file generatePython API remains available when supportModule is absent.
+    const candidates = new Set(['driver', 'recorded_step', 'pytest', 'os', 'time', 'AppiumBy', 'EC', 'WebDriverWait', 'NoSuchElementException', 'StaleElementReferenceException', 'TimeoutException']);
+    for (const line of support) {
+      const name = /^(?:def\s+([a-zA-Z_]\w*)\(|([A-Z][A-Z_0-9]*)\s*=)/.exec(line);
+      if (name) candidates.add(name[1] || name[2]);
+    }
+    const used = body.join('\n') + (body.length ? '\ndriver recorded_step' : '\npytest');
+    const names = [...candidates].filter(n => new RegExp(`\\b${n}\\b`).test(used)).sort();
+    lines.push(`from ${opts.supportModule} import (`);
+    for (const name of names) lines.push(`    ${name},`);
+    lines.push(')', '', '');
+  }
   lines.push(`def test_${s}(${body.length ? 'driver' : ''}):`);
   if (!body.length) lines.push('    pytest.skip("Empty starter: record steps in Vortex and save this test before running.")');
   if (body.length) lines.push('    with recorded_step(driver):');
   for (const l of body) lines.push('        ' + l);
   lines.push('');
-  return { code: lines.join('\n'), fileName: `test_${s}.py`, testName: `test_${s}` };
+  return { code: lines.join('\n'), fileName: `test_${s}.py`, testName: `test_${s}`, ...(supportCode ? { supportCode } : {}) };
 }

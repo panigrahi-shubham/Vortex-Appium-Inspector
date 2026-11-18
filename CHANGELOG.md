@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 — 2026-11-18
+
+- Replay checks available Python installations for pytest and the Appium client. An explicitly configured interpreter still takes precedence.
+- Fixed: Vortex-owned Appium driver subprocesses stay hidden on Windows, including ADB instrumentation and logcat consoles. Dead instrumentation releases its session; a read-only refresh reconnects once, and potentially delivered device actions are never replayed automatically.
+- Fixed: failed refreshes and closed sessions clear stale screenshots, selections and locator actions. Plain pytest exports now put fixtures and reliability helpers in a separate support file, keeping the test readable; existing recordings and the single-file generator API remain compatible.
 
 - Added: Reliability Engine v2 with additive action evidence, unique locator waits, stable bounds, verified native element gestures, keyboard preparation, bounded container-aware Native/WebView scrolling, and explicit navigation suggestions requiring tester approval.
 - Added: checkpoint-scoped playback with partial-result labels, Python compile/AST validation before export, reusable standalone failure/cleanup helpers, and generated Plain/POM StockPilot examples.
